@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Order } from "@/data/orders";
-import { DollarSign, ChevronDown, ChevronUp, User } from "lucide-react";
+import { DollarSign, ChevronDown, ChevronUp, User, PackageCheck } from "lucide-react";
 import { useState } from "react";
 
 interface ClientsViewProps {
@@ -25,6 +25,7 @@ export function ClientsView({ orders, onPayClient }: ClientsViewProps) {
         totalPrecio: items.reduce((s, o) => s + (o.precioVendido ?? 0), 0),
         totalPagado: items.reduce((s, o) => s + (o.pago ?? 0), 0),
         totalSaldo: items.reduce((s, o) => s + (o.saldo ?? 0), 0),
+        allSeparado: items.length > 0 && items.every(o => (o.estado || "").toUpperCase().includes("SEPARADO")),
       }))
       .sort((a, b) => b.totalSaldo - a.totalSaldo);
   }, [orders]);
@@ -51,6 +52,11 @@ export function ClientsView({ orders, onPayClient }: ClientsViewProps) {
               <p className="text-xs text-muted-foreground">{c.items.length} ítem(s)</p>
             </div>
             <div className="flex items-center gap-4 text-sm">
+              {c.allSeparado && (
+                <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-success/15 text-success text-xs font-bold border border-success/20 animate-pulse">
+                  <PackageCheck className="h-3.5 w-3.5" /> PEDIDO LISTO
+                </span>
+              )}
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">Saldo</p>
                 <p className={`font-bold tabular-nums ${c.totalSaldo > 0 ? 'text-warning' : 'text-success'}`}>
