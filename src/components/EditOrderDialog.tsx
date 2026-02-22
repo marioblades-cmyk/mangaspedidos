@@ -64,10 +64,10 @@ export function EditOrderDialog({ order, open, onClose, onSave, estados }: EditO
             </div>
             <div>
               <label className={labelClass}>Estado</label>
-              <select value={form.estado} onChange={e => update("estado", e.target.value)} className={inputClass}>
-                <option value="">Sin estado</option>
-                {estados.map(e => <option key={e} value={e}>{e}</option>)}
-              </select>
+              <input list="estados-list-edit" value={form.estado} onChange={e => update("estado", e.target.value)} placeholder="Ej: PEDIDO 10" className={inputClass} />
+              <datalist id="estados-list-edit">
+                {estados.map(e => <option key={e} value={e} />)}
+              </datalist>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
