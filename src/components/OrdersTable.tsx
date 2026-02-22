@@ -50,6 +50,7 @@ function TipoBadge({ tipo }: { tipo: string }) {
     "PRE VENTA": "bg-accent/15 text-accent border-accent/20",
     "RESERVA": "bg-primary/15 text-primary border-primary/20",
     "CAMBIO": "bg-warning/15 text-warning border-warning/20",
+    "PEDIDO": "bg-info/15 text-info border-info/20",
   };
   const style = styles[tipo] || "bg-muted text-muted-foreground border-border";
   return (
