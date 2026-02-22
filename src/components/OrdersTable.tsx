@@ -64,12 +64,13 @@ interface OrdersTableProps {
   onEdit: (order: Order) => void;
   onDelete: (id: number) => void;
   onBulkDelete: (ids: number[]) => void;
+  onBulkEdit: (ids: number[]) => void;
   onUpdateEstado: (id: number, estado: string) => void;
   selectedIds: Set<number>;
   onSelectionChange: (ids: Set<number>) => void;
 }
 
-export function OrdersTable({ orders, onEdit, onDelete, onBulkDelete, onUpdateEstado, selectedIds, onSelectionChange }: OrdersTableProps) {
+export function OrdersTable({ orders, onEdit, onDelete, onBulkDelete, onBulkEdit, onUpdateEstado, selectedIds, onSelectionChange }: OrdersTableProps) {
   const allSelected = orders.length > 0 && orders.every(o => selectedIds.has(o.id));
   const someSelected = orders.some(o => selectedIds.has(o.id));
 
@@ -90,8 +91,14 @@ export function OrdersTable({ orders, onEdit, onDelete, onBulkDelete, onUpdateEs
   return (
     <div className="space-y-2">
       {someSelected && (
-        <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20">
+        <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
           <span className="text-sm font-medium">{selectedIds.size} seleccionado(s)</span>
+          <button
+            onClick={() => onBulkEdit(Array.from(selectedIds))}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Editar seleccionados
+          </button>
           <button
             onClick={() => onBulkDelete(Array.from(selectedIds))}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-destructive text-destructive-foreground text-xs font-medium hover:bg-destructive/90 transition-colors"
