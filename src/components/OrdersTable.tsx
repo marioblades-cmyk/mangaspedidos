@@ -1,4 +1,5 @@
 import { Order } from "@/data/orders";
+import { Pencil, Trash2 } from "lucide-react";
 
 function EstadoBadge({ estado }: { estado: string }) {
   const styles: Record<string, string> = {
@@ -24,8 +25,6 @@ function TipoBadge({ tipo }: { tipo: string }) {
     "PRE VENTA": "bg-accent/15 text-accent border-accent/20",
     "RESERVA": "bg-primary/15 text-primary border-primary/20",
     "CAMBIO": "bg-warning/15 text-warning border-warning/20",
-    "CHICAS": "bg-muted text-muted-foreground border-border",
-    "STOCK": "bg-success/15 text-success border-success/20",
   };
   const style = styles[tipo] || "bg-muted text-muted-foreground border-border";
   return (
@@ -37,11 +36,13 @@ function TipoBadge({ tipo }: { tipo: string }) {
 
 interface OrdersTableProps {
   orders: Order[];
+  onEdit: (order: Order) => void;
+  onDelete: (id: number) => void;
 }
 
-export function OrdersTable({ orders }: OrdersTableProps) {
+export function OrdersTable({ orders, onEdit, onDelete }: OrdersTableProps) {
   return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
+    <div className="rounded-lg border border-border bg-card overflow-hidden shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -53,6 +54,7 @@ export function OrdersTable({ orders }: OrdersTableProps) {
               <th className="text-right p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Saldo</th>
               <th className="text-left p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Cliente</th>
               <th className="text-left p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Estado</th>
+              <th className="text-center p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -71,6 +73,24 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                 </td>
                 <td className="p-3 text-muted-foreground font-mono text-xs">{order.numero || "—"}</td>
                 <td className="p-3"><EstadoBadge estado={order.estado} /></td>
+                <td className="p-3">
+                  <div className="flex items-center justify-center gap-1">
+                    <button
+                      onClick={() => onEdit(order)}
+                      className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                      title="Editar"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(order.id)}
+                      className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>

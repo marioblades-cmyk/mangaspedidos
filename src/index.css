@@ -6,51 +6,51 @@
 
 @layer base {
   :root {
-    --background: 220 20% 7%;
-    --foreground: 210 20% 92%;
+    --background: 0 0% 97%;
+    --foreground: 220 20% 15%;
 
-    --card: 220 18% 10%;
-    --card-foreground: 210 20% 92%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 15%;
 
-    --popover: 220 18% 12%;
-    --popover-foreground: 210 20% 92%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 15%;
 
-    --primary: 10 85% 57%;
+    --primary: 0 78% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 16%;
-    --secondary-foreground: 210 20% 85%;
+    --secondary: 220 10% 94%;
+    --secondary-foreground: 220 20% 30%;
 
-    --muted: 220 14% 14%;
+    --muted: 220 10% 94%;
     --muted-foreground: 215 12% 50%;
 
-    --accent: 25 95% 55%;
+    --accent: 0 78% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 14% 18%;
-    --input: 220 14% 18%;
-    --ring: 10 85% 57%;
+    --border: 220 10% 88%;
+    --input: 220 10% 88%;
+    --ring: 0 78% 55%;
 
     --radius: 0.75rem;
 
-    --success: 150 60% 45%;
+    --success: 150 55% 42%;
     --success-foreground: 0 0% 100%;
-    --warning: 40 95% 55%;
+    --warning: 40 95% 50%;
     --warning-foreground: 0 0% 10%;
     --info: 210 80% 55%;
     --info-foreground: 0 0% 100%;
 
-    --sidebar-background: 220 20% 7%;
-    --sidebar-foreground: 210 20% 92%;
-    --sidebar-primary: 10 85% 57%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 20% 15%;
+    --sidebar-primary: 0 78% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 16%;
-    --sidebar-accent-foreground: 210 20% 85%;
-    --sidebar-border: 220 14% 18%;
-    --sidebar-ring: 10 85% 57%;
+    --sidebar-accent: 220 10% 94%;
+    --sidebar-accent-foreground: 220 20% 30%;
+    --sidebar-border: 220 10% 88%;
+    --sidebar-ring: 0 78% 55%;
   }
 }
 
@@ -70,12 +70,12 @@
 
 @layer utilities {
   .glow-primary {
-    box-shadow: 0 0 20px hsl(10 85% 57% / 0.15), 0 0 60px hsl(10 85% 57% / 0.05);
+    box-shadow: 0 0 20px hsl(0 78% 55% / 0.1), 0 0 60px hsl(0 78% 55% / 0.03);
   }
   .glow-success {
-    box-shadow: 0 0 12px hsl(150 60% 45% / 0.2);
+    box-shadow: 0 0 12px hsl(150 55% 42% / 0.1);
   }
   .glow-warning {
-    box-shadow: 0 0 12px hsl(40 95% 55% / 0.2);
+    box-shadow: 0 0 12px hsl(40 95% 50% / 0.1);
   }
 }
