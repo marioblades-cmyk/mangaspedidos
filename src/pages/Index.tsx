@@ -8,6 +8,7 @@ import { EditOrderDialog } from "@/components/EditOrderDialog";
 import { ClientsView } from "@/components/ClientsView";
 import { ClientPaymentDialog } from "@/components/ClientPaymentDialog";
 import { EstadoQuickActions } from "@/components/EstadoQuickActions";
+import { BulkEditDialog } from "@/components/BulkEditDialog";
 
 const Index = () => {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
@@ -18,7 +19,7 @@ const Index = () => {
   const [view, setView] = useState<"table" | "clients">("table");
   const [payClient, setPayClient] = useState<string | null>(null);
   const [estadoOrder, setEstadoOrder] = useState<Order | null>(null);
-
+  const [bulkEditIds, setBulkEditIds] = useState<number[]>([]);
   const estados = useMemo(() => getUniqueEstados(orders), [orders]);
 
   const filtered = useMemo(() => {
@@ -73,6 +74,18 @@ const Index = () => {
       const u = updates.find(u => u.id === o.id);
       return u ? { ...o, pago: u.pago, saldo: u.saldo } : o;
     }));
+  };
+
+  const handleBulkEdit = (changes: { estado?: string; tipo?: string }) => {
+    setOrders(prev => prev.map(o => {
+      if (!bulkEditIds.includes(o.id)) return o;
+      const updated = { ...o };
+      if (changes.estado !== undefined) updated.estado = changes.estado;
+      if (changes.tipo !== undefined) updated.tipo = changes.tipo;
+      return updated;
+    }));
+    setBulkEditIds([]);
+    setSelectedIds(new Set());
   };
 
   return (
@@ -140,6 +153,7 @@ const Index = () => {
             onEdit={setEditOrder}
             onDelete={handleDelete}
             onBulkDelete={handleBulkDelete}
+            onBulkEdit={(ids) => setBulkEditIds(ids)}
             onUpdateEstado={handleUpdateEstado}
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
@@ -151,7 +165,8 @@ const Index = () => {
 
       <EditOrderDialog order={editOrder} open={!!editOrder} onClose={() => setEditOrder(null)} onSave={handleEdit} estados={estados} />
       <ClientPaymentDialog orders={orders} cliente={payClient || ""} open={!!payClient} onClose={() => setPayClient(null)} onApplyPayment={handleApplyPayment} />
-      <EstadoQuickActions order={estadoOrder} open={!!estadoOrder} onClose={() => setEstadoOrder(null)} onUpdateEstado={handleEstadoConfirm} />
+      <EstadoQuickActions order={estadoOrder} open={!!estadoOrder} onClose={() => setEstadoOrder(null)} onUpdateEstado={handleEstadoConfirm} allEstados={estados} />
+      <BulkEditDialog open={bulkEditIds.length > 0} onClose={() => setBulkEditIds([])} count={bulkEditIds.length} onApply={handleBulkEdit} estados={estados} />
     </div>
   );
 };
