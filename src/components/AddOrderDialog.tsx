@@ -84,7 +84,10 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
       nota: colNota,
       estado: estado,
     }));
-    setItems(generated);
+    setItems(prev => {
+      const existing = prev.filter(it => it.titulo.trim() !== "");
+      return [...existing, ...generated];
+    });
     setMode("manual"); // switch to manual so user can edit each
   };
 
@@ -132,7 +135,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
           <Plus className="h-4 w-4" /> Agregar Pedido
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto resize overflow-auto" style={{ minWidth: 400, minHeight: 300 }}>
         <DialogHeader>
           <DialogTitle className="font-display text-xl">Nuevo Pedido</DialogTitle>
         </DialogHeader>

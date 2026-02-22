@@ -77,20 +77,37 @@ export function ClientsView({ orders, onPayClient }: ClientsViewProps) {
           {expanded.has(c.numero) && (
             <div className="border-t border-border">
               <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/40 border-b border-border">
+                    <th className="px-4 py-1.5 text-left text-xs font-semibold text-muted-foreground">Título</th>
+                    <th className="px-4 py-1.5 text-left text-xs font-semibold text-muted-foreground">Tipo</th>
+                    <th className="px-4 py-1.5 text-right text-xs font-semibold text-muted-foreground">P.Regular</th>
+                    <th className="px-4 py-1.5 text-right text-xs font-semibold text-muted-foreground">P.Vendido</th>
+                    <th className="px-4 py-1.5 text-right text-xs font-semibold text-muted-foreground">Pagado</th>
+                    <th className="px-4 py-1.5 text-right text-xs font-semibold text-muted-foreground">Saldo</th>
+                    <th className="px-4 py-1.5 text-left text-xs font-semibold text-muted-foreground">Estado</th>
+                    <th className="px-4 py-1.5 text-left text-xs font-semibold text-muted-foreground">Nota</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {c.items.map(o => (
-                    <tr key={o.id} className="border-b border-border/30 last:border-0">
+                    <tr key={o.id} className="border-b border-border/30 last:border-0 hover:bg-muted/20">
                       <td className="px-4 py-2 font-medium truncate max-w-[200px]">{o.titulo}</td>
+                      <td className="px-4 py-2 text-xs">{o.tipo || '—'}</td>
+                      <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
+                        {o.precioRegular != null ? `Bs ${o.precioRegular.toFixed(1)}` : '—'}
+                      </td>
                       <td className="px-4 py-2 text-right tabular-nums">
                         {o.precioVendido != null ? `Bs ${o.precioVendido.toFixed(1)}` : '—'}
                       </td>
                       <td className="px-4 py-2 text-right tabular-nums text-success">
                         {o.pago != null ? `Bs ${o.pago.toFixed(1)}` : '—'}
                       </td>
-                      <td className={`px-4 py-2 text-right tabular-nums font-medium ${(o.saldo ?? 0) > 0 ? 'text-warning' : 'text-success'}`}>
+                      <td className={`px-4 py-2 text-right tabular-nums font-bold ${(o.saldo ?? 0) > 0 ? 'text-warning' : 'text-success'}`}>
                         Bs {(o.saldo ?? 0).toFixed(1)}
                       </td>
                       <td className="px-4 py-2 text-xs text-muted-foreground">{o.estado || '—'}</td>
+                      <td className="px-4 py-2 text-xs text-muted-foreground truncate max-w-[120px]">{o.nota || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
