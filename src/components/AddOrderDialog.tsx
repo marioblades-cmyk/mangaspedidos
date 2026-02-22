@@ -52,9 +52,29 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
     return Math.max(0, precio - pago);
   };
 
+  const expandVolumes = (input: string): string[] => {
+    const parts = input.split(",").map(v => v.trim()).filter(v => v !== "");
+    const result: string[] = [];
+    for (const part of parts) {
+      if (part.includes("-")) {
+        const [startStr, endStr] = part.split("-").map(s => s.trim());
+        const start = parseInt(startStr, 10);
+        const end = parseInt(endStr, 10);
+        if (!isNaN(start) && !isNaN(end) && start <= end) {
+          for (let i = start; i <= end; i++) result.push(String(i));
+        } else {
+          result.push(part);
+        }
+      } else {
+        result.push(part);
+      }
+    }
+    return result;
+  };
+
   const generateFromCollection = () => {
     if (!colName.trim() || !colVolumes.trim()) return;
-    const volumes = colVolumes.split(",").map(v => v.trim()).filter(v => v !== "");
+    const volumes = expandVolumes(colVolumes);
     const generated: OrderItem[] = volumes.map(vol => ({
       titulo: `${colName.trim()} ${vol}`,
       tipo: colTipo,
@@ -153,7 +173,8 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
                 </div>
                 <div className="col-span-2">
                   <label className={labelClass}>Tomos (separados por coma)</label>
-                  <input value={colVolumes} onChange={e => setColVolumes(e.target.value)} placeholder="Ej: 1,2,3,4,6,7" className={inputClass} />
+                  <input value={colVolumes} onChange={e => setColVolumes(e.target.value)} placeholder="Ej: 1-5,7,9-13" className={inputClass} />
+                  <p className="text-[10px] text-muted-foreground mt-1">Usa comas para separar y guión para rangos (1-13 = del 1 al 13)</p>
                 </div>
                 <div>
                   <label className={labelClass}>Tipo</label>
@@ -187,7 +208,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
                 disabled={!colName.trim() || !colVolumes.trim()}
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
               >
-                <BookCopy className="h-4 w-4" /> Generar {colVolumes.split(",").filter(v => v.trim()).length || 0} ítem(s)
+                <BookCopy className="h-4 w-4" /> Generar {expandVolumes(colVolumes).length || 0} ítem(s)
               </Button>
             </div>
           ) : (
