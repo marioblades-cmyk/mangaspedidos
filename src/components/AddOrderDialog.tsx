@@ -11,10 +11,11 @@ interface OrderItem {
   precioRegular: string;
   pago: string;
   nota: string;
+  estado: string;
 }
 
 const emptyItem = (): OrderItem => ({
-  titulo: "", tipo: "", precioVendido: "", precioRegular: "", pago: "", nota: "",
+  titulo: "", tipo: "", precioVendido: "", precioRegular: "", pago: "", nota: "", estado: "",
 });
 
 interface AddOrderDialogProps {
@@ -61,6 +62,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
       precioRegular: colPrecioRegular,
       pago: colPago,
       nota: colNota,
+      estado: estado,
     }));
     setItems(generated);
     setMode("manual"); // switch to manual so user can edit each
@@ -77,7 +79,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
         pago: it.pago ? parseFloat(it.pago) : null,
         saldo: it.precioVendido ? getSaldo(it) : null,
         numero: cliente,
-        estado,
+        estado: it.estado || estado,
         nota: it.nota,
       }));
     if (newOrders.length === 0) return;
@@ -160,6 +162,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
                     <option value="PRE VENTA">PRE VENTA</option>
                     <option value="RESERVA">RESERVA</option>
                     <option value="CAMBIO">CAMBIO</option>
+                    <option value="PEDIDO">PEDIDO</option>
                   </select>
                 </div>
                 <div>
@@ -218,7 +221,15 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
                         <option value="PRE VENTA">PRE VENTA</option>
                         <option value="RESERVA">RESERVA</option>
                         <option value="CAMBIO">CAMBIO</option>
+                        <option value="PEDIDO">PEDIDO</option>
                       </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Estado</label>
+                      <input list={`estados-item-${idx}`} value={item.estado} onChange={e => updateItem(idx, "estado", e.target.value)} placeholder="Ej: PEDIDO 10" className={inputClass} />
+                      <datalist id={`estados-item-${idx}`}>
+                        {estados.map(e => <option key={e} value={e} />)}
+                      </datalist>
                     </div>
                     <div>
                       <label className={labelClass}>Precio Regular</label>

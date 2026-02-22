@@ -60,6 +60,7 @@ export function EditOrderDialog({ order, open, onClose, onSave, estados }: EditO
                 <option value="PRE VENTA">PRE VENTA</option>
                 <option value="RESERVA">RESERVA</option>
                 <option value="CAMBIO">CAMBIO</option>
+                <option value="PEDIDO">PEDIDO</option>
               </select>
             </div>
             <div>
