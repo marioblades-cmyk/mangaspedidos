@@ -87,10 +87,10 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
             </div>
             <div>
               <label className={labelClass}>Estado</label>
-              <select value={estado} onChange={e => setEstado(e.target.value)} className={inputClass}>
-                <option value="">Sin estado</option>
-                {estados.map(e => <option key={e} value={e}>{e}</option>)}
-              </select>
+              <input list="estados-list-add" value={estado} onChange={e => setEstado(e.target.value)} placeholder="Ej: PEDIDO 10" className={inputClass} />
+              <datalist id="estados-list-add">
+                {estados.map(e => <option key={e} value={e} />)}
+              </datalist>
             </div>
           </div>
 
