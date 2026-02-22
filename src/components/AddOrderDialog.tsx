@@ -220,63 +220,75 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
                 </Button>
               </div>
 
-              {items.map((item, idx) => (
-                <div key={idx} className="border border-border rounded-lg p-4 space-y-3 bg-muted/30">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Ítem {idx + 1}</span>
-                    {items.length > 1 && (
-                      <button onClick={() => removeItem(idx)} className="text-destructive hover:text-destructive/80 p-1">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="col-span-2">
-                      <label className={labelClass}>Título</label>
-                      <input value={item.titulo} onChange={e => updateItem(idx, "titulo", e.target.value)} placeholder="Ej: CHAINSAW MAN 22" className={inputClass} />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Tipo</label>
-                      <select value={item.tipo} onChange={e => updateItem(idx, "tipo", e.target.value)} className={inputClass}>
-                        <option value="">—</option>
-                        <option value="PRE VENTA">PRE VENTA</option>
-                        <option value="RESERVA">RESERVA</option>
-                        <option value="CAMBIO">CAMBIO</option>
-                        <option value="PEDIDO">PEDIDO</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className={labelClass}>Estado</label>
-                      <input list={`estados-item-${idx}`} value={item.estado} onChange={e => updateItem(idx, "estado", e.target.value)} placeholder="Ej: PEDIDO 10" className={inputClass} />
-                      <datalist id={`estados-item-${idx}`}>
-                        {estados.map(e => <option key={e} value={e} />)}
-                      </datalist>
-                    </div>
-                    <div>
-                      <label className={labelClass}>Precio Regular</label>
-                      <input type="number" value={item.precioRegular} onChange={e => updateItem(idx, "precioRegular", e.target.value)} placeholder="0.00" className={inputClass} />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Precio Vendido</label>
-                      <input type="number" value={item.precioVendido} onChange={e => updateItem(idx, "precioVendido", e.target.value)} placeholder="0.00" className={inputClass} />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Pago</label>
-                      <input type="number" value={item.pago} onChange={e => updateItem(idx, "pago", e.target.value)} placeholder="0.00" className={inputClass} />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Saldo</label>
-                      <div className={`px-3 py-2 rounded-lg border border-border bg-muted/50 text-sm font-medium tabular-nums ${getSaldo(item) > 0 ? "text-warning" : "text-success"}`}>
-                        Bs {getSaldo(item).toFixed(2)}
-                      </div>
-                    </div>
-                    <div>
-                      <label className={labelClass}>Nota</label>
-                      <input value={item.nota} onChange={e => updateItem(idx, "nota", e.target.value)} placeholder="Opcional" className={inputClass} />
-                    </div>
-                  </div>
+              <div className="border border-border rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-muted/60 border-b border-border">
+                        <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground">#</th>
+                        <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground">Título</th>
+                        <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground">Tipo</th>
+                        <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground">Estado</th>
+                        <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground">P.Reg</th>
+                        <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground">P.Vend</th>
+                        <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground">Pago</th>
+                        <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground">Saldo</th>
+                        <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground">Nota</th>
+                        <th className="px-2 py-1.5 w-8"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((item, idx) => (
+                        <tr key={idx} className="border-b border-border/50 last:border-0 hover:bg-muted/30">
+                          <td className="px-2 py-1.5 text-muted-foreground">{idx + 1}</td>
+                          <td className="px-1 py-1">
+                            <input value={item.titulo} onChange={e => updateItem(idx, "titulo", e.target.value)} placeholder="Título" className="w-full min-w-[120px] px-1.5 py-1 rounded border border-border bg-card text-xs focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                          </td>
+                          <td className="px-1 py-1">
+                            <select value={item.tipo} onChange={e => updateItem(idx, "tipo", e.target.value)} className="w-full min-w-[80px] px-1 py-1 rounded border border-border bg-card text-xs focus:outline-none focus:ring-1 focus:ring-primary/30">
+                              <option value="">—</option>
+                              <option value="PRE VENTA">PRE VENTA</option>
+                              <option value="RESERVA">RESERVA</option>
+                              <option value="CAMBIO">CAMBIO</option>
+                              <option value="PEDIDO">PEDIDO</option>
+                            </select>
+                          </td>
+                          <td className="px-1 py-1">
+                            <input list={`estados-item-${idx}`} value={item.estado} onChange={e => updateItem(idx, "estado", e.target.value)} placeholder="Estado" className="w-full min-w-[80px] px-1.5 py-1 rounded border border-border bg-card text-xs focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                            <datalist id={`estados-item-${idx}`}>
+                              {estados.map(e => <option key={e} value={e} />)}
+                            </datalist>
+                          </td>
+                          <td className="px-1 py-1">
+                            <input type="number" value={item.precioRegular} onChange={e => updateItem(idx, "precioRegular", e.target.value)} placeholder="0" className="w-full min-w-[55px] px-1.5 py-1 rounded border border-border bg-card text-xs tabular-nums focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                          </td>
+                          <td className="px-1 py-1">
+                            <input type="number" value={item.precioVendido} onChange={e => updateItem(idx, "precioVendido", e.target.value)} placeholder="0" className="w-full min-w-[55px] px-1.5 py-1 rounded border border-border bg-card text-xs tabular-nums focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                          </td>
+                          <td className="px-1 py-1">
+                            <input type="number" value={item.pago} onChange={e => updateItem(idx, "pago", e.target.value)} placeholder="0" className="w-full min-w-[55px] px-1.5 py-1 rounded border border-border bg-card text-xs tabular-nums focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                          </td>
+                          <td className="px-1 py-1">
+                            <span className={`inline-block px-1.5 py-1 rounded text-xs font-medium tabular-nums ${getSaldo(item) > 0 ? "text-warning" : "text-success"}`}>
+                              {getSaldo(item).toFixed(0)}
+                            </span>
+                          </td>
+                          <td className="px-1 py-1">
+                            <input value={item.nota} onChange={e => updateItem(idx, "nota", e.target.value)} placeholder="—" className="w-full min-w-[60px] px-1.5 py-1 rounded border border-border bg-card text-xs focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                          </td>
+                          <td className="px-1 py-1">
+                            {items.length > 1 && (
+                              <button onClick={() => removeItem(idx)} className="text-destructive hover:text-destructive/80 p-0.5">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
+              </div>
             </div>
           )}
 

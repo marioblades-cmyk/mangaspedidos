@@ -94,8 +94,8 @@ export function EditOrderDialog({ order, open, onClose, onSave, estados }: EditO
             </div>
           </div>
           <div>
-            <label className={labelClass}>Cliente</label>
-            <input value={form.numero} onChange={e => update("numero", e.target.value)} className={inputClass} />
+            <label className={labelClass}>Cliente (Número)</label>
+            <input value={form.numero} onChange={e => update("numero", e.target.value)} placeholder="Ej: 77331983" className={inputClass} />
           </div>
           <div>
             <label className={labelClass}>Nota</label>
