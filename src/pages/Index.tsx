@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
-import { Search, Filter, BookOpen, Users, List } from "lucide-react";
-import { ordersData as initialOrders, Order, getStats, getUniqueEstados } from "@/data/orders";
+import { Search, Filter, BookOpen, Users, List, Loader2 } from "lucide-react";
+import { Order, getStats } from "@/data/orders";
+import { useOrders } from "@/hooks/useOrders";
 import { StatsRow } from "@/components/StatsRow";
 import { OrdersTable } from "@/components/OrdersTable";
 import { AddOrderDialog } from "@/components/AddOrderDialog";
@@ -11,7 +12,12 @@ import { EstadoQuickActions } from "@/components/EstadoQuickActions";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
 
 const Index = () => {
-  const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const {
+    orders, loading, estados,
+    addOrders, updateOrder, deleteOrder, deleteMany,
+    updateEstado, applyPayment, bulkEdit,
+  } = useOrders();
+
   const [search, setSearch] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("");
   const [editOrder, setEditOrder] = useState<Order | null>(null);
@@ -20,7 +26,6 @@ const Index = () => {
   const [payClient, setPayClient] = useState<string | null>(null);
   const [estadoOrder, setEstadoOrder] = useState<Order | null>(null);
   const [bulkEditIds, setBulkEditIds] = useState<number[]>([]);
-  const estados = useMemo(() => getUniqueEstados(orders), [orders]);
 
   const filtered = useMemo(() => {
     return orders.filter((o) => {
@@ -32,61 +37,41 @@ const Index = () => {
 
   const stats = useMemo(() => getStats(filtered), [filtered]);
 
-  const nextId = () => Math.max(0, ...orders.map(o => o.id)) + 1;
-
-  const handleAdd = (newOrders: Omit<Order, "id">[]) => {
-    let id = nextId();
-    const withIds = newOrders.map(o => ({ ...o, id: id++ }));
-    setOrders(prev => [...prev, ...withIds]);
-  };
-
-  const handleEdit = (updated: Order) => {
-    setOrders(prev => prev.map(o => o.id === updated.id ? updated : o));
-  };
-
   const handleDelete = (id: number) => {
     if (window.confirm("¿Eliminar este pedido?")) {
-      setOrders(prev => prev.filter(o => o.id !== id));
+      deleteOrder(id);
     }
   };
 
   const handleBulkDelete = (ids: number[]) => {
     if (window.confirm(`¿Eliminar ${ids.length} pedido(s)?`)) {
-      setOrders(prev => prev.filter(o => !ids.includes(o.id)));
+      deleteMany(ids);
       setSelectedIds(new Set());
     }
   };
 
   const handleUpdateEstado = (id: number, estado: string) => {
-    // If clicking the chevron, open the quick actions dialog
     const order = orders.find(o => o.id === id);
-    if (order) {
-      setEstadoOrder(order);
-    }
+    if (order) setEstadoOrder(order);
   };
 
   const handleEstadoConfirm = (id: number, estado: string) => {
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, estado } : o));
-  };
-
-  const handleApplyPayment = (updates: { id: number; pago: number; saldo: number }[]) => {
-    setOrders(prev => prev.map(o => {
-      const u = updates.find(u => u.id === o.id);
-      return u ? { ...o, pago: u.pago, saldo: u.saldo } : o;
-    }));
+    updateEstado(id, estado);
   };
 
   const handleBulkEdit = (changes: { estado?: string; tipo?: string }) => {
-    setOrders(prev => prev.map(o => {
-      if (!bulkEditIds.includes(o.id)) return o;
-      const updated = { ...o };
-      if (changes.estado !== undefined) updated.estado = changes.estado;
-      if (changes.tipo !== undefined) updated.tipo = changes.tipo;
-      return updated;
-    }));
+    bulkEdit(bulkEditIds, changes);
     setBulkEditIds([]);
     setSelectedIds(new Set());
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -113,7 +98,7 @@ const Index = () => {
             <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-md font-medium">
               {orders.length} pedidos
             </span>
-            <AddOrderDialog onAdd={handleAdd} estados={estados} />
+            <AddOrderDialog onAdd={addOrders} estados={estados} />
           </div>
         </div>
       </header>
@@ -163,8 +148,8 @@ const Index = () => {
         )}
       </main>
 
-      <EditOrderDialog order={editOrder} open={!!editOrder} onClose={() => setEditOrder(null)} onSave={handleEdit} estados={estados} />
-      <ClientPaymentDialog orders={orders} cliente={payClient || ""} open={!!payClient} onClose={() => setPayClient(null)} onApplyPayment={handleApplyPayment} />
+      <EditOrderDialog order={editOrder} open={!!editOrder} onClose={() => setEditOrder(null)} onSave={(o) => { updateOrder(o); setEditOrder(null); }} estados={estados} />
+      <ClientPaymentDialog orders={orders} cliente={payClient || ""} open={!!payClient} onClose={() => setPayClient(null)} onApplyPayment={applyPayment} />
       <EstadoQuickActions order={estadoOrder} open={!!estadoOrder} onClose={() => setEstadoOrder(null)} onUpdateEstado={handleEstadoConfirm} allEstados={estados} />
       <BulkEditDialog open={bulkEditIds.length > 0} onClose={() => setBulkEditIds([])} count={bulkEditIds.length} onApply={handleBulkEdit} estados={estados} />
     </div>
