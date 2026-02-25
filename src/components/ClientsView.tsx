@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Order } from "@/data/orders";
 import { DollarSign, ChevronDown, ChevronUp, User, PackageCheck, Wallet, Trash2, Check, Send } from "lucide-react";
 import { ClientPayment } from "@/hooks/useClientPayments";
+import { WhatsAppMenu } from "@/components/WhatsAppMenu";
 
 interface ClientsViewProps {
   orders: Order[];
@@ -153,6 +154,14 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
                     <DollarSign className="h-3.5 w-3.5" /> Pagar
                   </button>
                 )}
+                <WhatsAppMenu
+                  numero={c.numero}
+                  items={c.items}
+                  clientPayments={payments}
+                  generalPaid={c.generalPaid}
+                  saldoAjustado={c.saldoAjustado}
+                  decimals={decimals}
+                />
                 {expanded.has(c.numero) ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
               </div>
             </div>
