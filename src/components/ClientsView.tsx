@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Order } from "@/data/orders";
-import { DollarSign, ChevronDown, ChevronUp, User, PackageCheck, Wallet, Trash2 } from "lucide-react";
+import { DollarSign, ChevronDown, ChevronUp, User, PackageCheck, Wallet, Trash2, Check, Send } from "lucide-react";
 import { ClientPayment } from "@/hooks/useClientPayments";
 
 interface ClientsViewProps {
@@ -11,12 +11,15 @@ interface ClientsViewProps {
   clientPayments: ClientPayment[];
   getClientPaidTotal: (numero: string) => number;
   onDeleteGeneralPayment: (id: number) => void;
+  onUpdateEstado: (id: number, estado: string) => void;
+  showEnviados: boolean;
 }
 
-export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, clientPayments, getClientPaidTotal, onDeleteGeneralPayment }: ClientsViewProps) {
+export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, clientPayments, getClientPaidTotal, onDeleteGeneralPayment, onUpdateEstado, showEnviados }: ClientsViewProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [editingPago, setEditingPago] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
 
   const fmt = (v: number) => v.toFixed(decimals);
 
@@ -29,21 +32,28 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
     });
     return Array.from(map.entries())
       .map(([numero, items]) => {
+        const pendingItems = items.filter(o => o.estado !== "ENVIADO");
+        const enviadoItems = items.filter(o => o.estado === "ENVIADO");
         const totalSaldo = items.reduce((s, o) => s + (o.saldo ?? 0), 0);
         const generalPaid = getClientPaidTotal(numero);
+        const allEnviado = items.length > 0 && items.every(o => o.estado === "ENVIADO");
         return {
           numero,
           items,
+          pendingItems,
+          enviadoItems,
+          allEnviado,
           totalPrecio: items.reduce((s, o) => s + (o.precioVendido ?? 0), 0),
           totalPagado: items.reduce((s, o) => s + (o.pago ?? 0), 0),
           totalSaldo,
           generalPaid,
           saldoAjustado: Math.max(0, totalSaldo - generalPaid),
-          allSeparado: items.length > 0 && items.every(o => (o.estado || "").toUpperCase().includes("SEPARADO")),
+          allSeparado: pendingItems.length > 0 && pendingItems.every(o => (o.estado || "").toUpperCase().includes("SEPARADO")),
         };
       })
+      .filter(c => showEnviados || !c.allEnviado)
       .sort((a, b) => b.saldoAjustado - a.saldoAjustado);
-  }, [orders, getClientPaidTotal]);
+  }, [orders, getClientPaidTotal, showEnviados]);
 
   const toggle = (num: string) => {
     const next = new Set(expanded);
@@ -67,12 +77,36 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
     return clientPayments.filter(p => p.numero === numero);
   };
 
+  const toggleItem = (id: number) => {
+    const next = new Set(selectedItems);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setSelectedItems(next);
+  };
+
+  const handleDespachar = (clientItems: Order[]) => {
+    const toDispatch = clientItems.filter(o => selectedItems.has(o.id) && (o.saldo ?? 0) === 0 && o.estado !== "ENVIADO");
+    if (toDispatch.length === 0) return;
+    if (!window.confirm(`¿Despachar ${toDispatch.length} ítem(s) como ENVIADO?`)) return;
+    toDispatch.forEach(o => onUpdateEstado(o.id, "ENVIADO"));
+    setSelectedItems(prev => {
+      const next = new Set(prev);
+      toDispatch.forEach(o => next.delete(o.id));
+      return next;
+    });
+  };
+
+  const getDispatchableCount = (clientItems: Order[]) => {
+    return clientItems.filter(o => selectedItems.has(o.id) && (o.saldo ?? 0) === 0 && o.estado !== "ENVIADO").length;
+  };
+
   return (
     <div className="space-y-2">
       {clients.map(c => {
         const payments = getPaymentsForClient(c.numero);
+        const dispatchable = getDispatchableCount(c.items);
+        const clientSelected = c.items.filter(o => selectedItems.has(o.id));
         return (
-          <div key={c.numero} className="rounded-lg border border-border bg-card overflow-hidden">
+          <div key={c.numero} className={`rounded-lg border border-border bg-card overflow-hidden ${c.allEnviado ? 'opacity-50' : ''}`}>
             <div
               className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
               onClick={() => toggle(c.numero)}
@@ -82,10 +116,15 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium font-mono text-sm">{c.numero}</p>
-                <p className="text-xs text-muted-foreground">{c.items.length} ítem(s)</p>
+                <p className="text-xs text-muted-foreground">{c.items.length} ítem(s){c.enviadoItems.length > 0 ? ` · ${c.enviadoItems.length} enviado(s)` : ''}</p>
               </div>
               <div className="flex items-center gap-4 text-sm">
-                {c.allSeparado && (
+                {c.allEnviado && (
+                  <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-muted-foreground text-xs font-bold border border-border">
+                    <Send className="h-3.5 w-3.5" /> TODO ENVIADO
+                  </span>
+                )}
+                {c.allSeparado && !c.allEnviado && (
                   <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-success/15 text-success text-xs font-bold border border-success/20 animate-pulse">
                     <PackageCheck className="h-3.5 w-3.5" /> PEDIDO LISTO
                   </span>
@@ -119,10 +158,36 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
             </div>
             {expanded.has(c.numero) && (
               <div className="border-t border-border">
+                {/* Despachar toolbar */}
+                {clientSelected.length > 0 && (
+                  <div className="flex items-center gap-3 px-4 py-2 bg-primary/5 border-b border-border">
+                    <span className="text-xs font-medium">{clientSelected.length} seleccionado(s)</span>
+                    <button
+                      onClick={() => handleDespachar(c.items)}
+                      disabled={dispatchable === 0}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-success text-success-foreground text-xs font-medium hover:bg-success/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      title={dispatchable === 0 ? "Solo se pueden despachar ítems con saldo = 0" : `Despachar ${dispatchable} ítem(s)`}
+                    >
+                      <Send className="h-3.5 w-3.5" /> Despachar seleccionados {dispatchable > 0 && `(${dispatchable})`}
+                    </button>
+                    <button
+                      onClick={() => setSelectedItems(prev => {
+                        const next = new Set(prev);
+                        c.items.forEach(o => next.delete(o.id));
+                        return next;
+                      })}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors ml-auto"
+                    >
+                      Deseleccionar
+                    </button>
+                  </div>
+                )}
+
                 {/* Items table */}
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-muted/40 border-b border-border">
+                      <th className="px-3 py-1.5 w-8"></th>
                       <th className="px-4 py-1.5 text-left text-xs font-semibold text-muted-foreground">Título</th>
                       <th className="px-4 py-1.5 text-left text-xs font-semibold text-muted-foreground">Tipo</th>
                       <th className="px-4 py-1.5 text-right text-xs font-semibold text-muted-foreground">P.Regular</th>
@@ -135,7 +200,20 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
                   </thead>
                   <tbody>
                     {c.items.map(o => (
-                      <tr key={o.id} className="border-b border-border/30 last:border-0 hover:bg-muted/20">
+                      <tr key={o.id} className={`border-b border-border/30 last:border-0 hover:bg-muted/20 ${o.estado === "ENVIADO" ? 'opacity-40' : ''} ${selectedItems.has(o.id) ? 'bg-primary/5' : ''}`}>
+                        <td className="px-3 py-2">
+                          {o.estado !== "ENVIADO" && (
+                            <button
+                              onClick={() => toggleItem(o.id)}
+                              className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${selectedItems.has(o.id) ? 'bg-primary border-primary text-primary-foreground' : 'border-border hover:border-muted-foreground'}`}
+                            >
+                              {selectedItems.has(o.id) && <Check className="h-3 w-3" />}
+                            </button>
+                          )}
+                          {o.estado === "ENVIADO" && (
+                            <Send className="h-3.5 w-3.5 text-muted-foreground" />
+                          )}
+                        </td>
                         <td className="px-4 py-2 font-medium truncate max-w-[200px]">{o.titulo}</td>
                         <td className="px-4 py-2 text-xs">{o.tipo || '—'}</td>
                         <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
@@ -220,7 +298,7 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
         );
       })}
       {clients.length === 0 && (
-        <div className="p-12 text-center text-muted-foreground">No hay clientes.</div>
+        <div className="p-12 text-center text-muted-foreground">No hay clientes{showEnviados ? '.' : ' con pedidos pendientes.'}</div>
       )}
     </div>
   );
