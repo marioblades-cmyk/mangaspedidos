@@ -148,12 +148,24 @@ export function useOrders() {
     }));
   }, [showError]);
 
+  const bulkEditIndividual = useCallback(async (updates: { id: number; estado: string }[]) => {
+    const results = await Promise.all(
+      updates.map(u => supabase.from("orders").update({ estado: u.estado }).eq("id", u.id))
+    );
+    const hasError = results.some(r => r.error);
+    if (hasError) { showError("Error al editar estados"); return; }
+    setOrders(prev => prev.map(o => {
+      const u = updates.find(u => u.id === o.id);
+      return u ? { ...o, estado: u.estado } : o;
+    }));
+  }, [showError]);
+
   const estados = useMemo(() => getUniqueEstados(orders), [orders]);
 
   return {
     orders, loading, estados,
     addOrders, updateOrder, deleteOrder, deleteMany,
-    updateEstado, applyPayment, bulkEdit,
+    updateEstado, applyPayment, bulkEdit, bulkEditIndividual,
     getStats: (filtered: Order[]) => getStats(filtered),
   };
 }

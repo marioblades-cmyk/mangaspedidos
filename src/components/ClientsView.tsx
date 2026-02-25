@@ -1,15 +1,20 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Order } from "@/data/orders";
 import { DollarSign, ChevronDown, ChevronUp, User, PackageCheck } from "lucide-react";
-import { useState } from "react";
 
 interface ClientsViewProps {
   orders: Order[];
   onPayClient: (cliente: string) => void;
+  decimals: number;
+  onUpdatePayment: (updates: { id: number; pago: number; saldo: number }[]) => void;
 }
 
-export function ClientsView({ orders, onPayClient }: ClientsViewProps) {
+export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment }: ClientsViewProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [editingPago, setEditingPago] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState("");
+
+  const fmt = (v: number) => v.toFixed(decimals);
 
   const clients = useMemo(() => {
     const map = new Map<string, Order[]>();
@@ -36,6 +41,18 @@ export function ClientsView({ orders, onPayClient }: ClientsViewProps) {
     setExpanded(next);
   };
 
+  const startEditPago = (order: Order) => {
+    setEditingPago(order.id);
+    setEditValue(String(order.pago ?? 0));
+  };
+
+  const savePago = (order: Order) => {
+    const newPago = parseFloat(editValue) || 0;
+    const newSaldo = Math.max(0, (order.precioVendido ?? 0) - newPago);
+    onUpdatePayment([{ id: order.id, pago: newPago, saldo: newSaldo }]);
+    setEditingPago(null);
+  };
+
   return (
     <div className="space-y-2">
       {clients.map(c => (
@@ -60,7 +77,7 @@ export function ClientsView({ orders, onPayClient }: ClientsViewProps) {
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">Saldo</p>
                 <p className={`font-bold tabular-nums ${c.totalSaldo > 0 ? 'text-warning' : 'text-success'}`}>
-                  Bs {c.totalSaldo.toFixed(1)}
+                  Bs {fmt(c.totalSaldo)}
                 </p>
               </div>
               {c.totalSaldo > 0 && (
@@ -95,16 +112,34 @@ export function ClientsView({ orders, onPayClient }: ClientsViewProps) {
                       <td className="px-4 py-2 font-medium truncate max-w-[200px]">{o.titulo}</td>
                       <td className="px-4 py-2 text-xs">{o.tipo || '—'}</td>
                       <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
-                        {o.precioRegular != null ? `Bs ${o.precioRegular.toFixed(1)}` : '—'}
+                        {o.precioRegular != null ? `Bs ${fmt(o.precioRegular)}` : '—'}
                       </td>
                       <td className="px-4 py-2 text-right tabular-nums">
-                        {o.precioVendido != null ? `Bs ${o.precioVendido.toFixed(1)}` : '—'}
+                        {o.precioVendido != null ? `Bs ${fmt(o.precioVendido)}` : '—'}
                       </td>
                       <td className="px-4 py-2 text-right tabular-nums text-success">
-                        {o.pago != null ? `Bs ${o.pago.toFixed(1)}` : '—'}
+                        {editingPago === o.id ? (
+                          <input
+                            type="number"
+                            value={editValue}
+                            onChange={e => setEditValue(e.target.value)}
+                            onBlur={() => savePago(o)}
+                            onKeyDown={e => { if (e.key === "Enter") savePago(o); if (e.key === "Escape") setEditingPago(null); }}
+                            className="w-20 px-1.5 py-0.5 rounded border border-primary/50 bg-card text-xs text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-primary/30"
+                            autoFocus
+                          />
+                        ) : (
+                          <span
+                            onClick={(e) => { e.stopPropagation(); startEditPago(o); }}
+                            className="cursor-pointer hover:bg-primary/10 px-1.5 py-0.5 rounded transition-colors"
+                            title="Clic para editar pago"
+                          >
+                            {o.pago != null ? `Bs ${fmt(o.pago)}` : '—'}
+                          </span>
+                        )}
                       </td>
                       <td className={`px-4 py-2 text-right tabular-nums font-bold ${(o.saldo ?? 0) > 0 ? 'text-warning' : 'text-success'}`}>
-                        Bs {(o.saldo ?? 0).toFixed(1)}
+                        Bs {fmt(o.saldo ?? 0)}
                       </td>
                       <td className="px-4 py-2 text-xs text-muted-foreground">{o.estado || '—'}</td>
                       <td className="px-4 py-2 text-xs text-muted-foreground truncate max-w-[120px]">{o.nota || '—'}</td>

@@ -1,37 +1,39 @@
 import { Order } from "@/data/orders";
 import { Pencil, Trash2, ChevronRight, Check } from "lucide-react";
 
-const ESTADO_FLOW: Record<string, string> = {
-  "PEDIDO 9": "CONFIRMADO",
-  "PEDIDO 10": "CONFIRMADO",
-  "PEDIDO 11": "CONFIRMADO",
-  "PEDIDO 21": "CONFIRMADO",
-  "CONFIRMADO": "SEPARADO",
-  "NO CONFIRMADO": "", // needs re-order
-};
+function getNextEstado(estado: string): string | null {
+  const pedidoMatch = estado.match(/^PEDIDO\s+(.+)$/i);
+  if (pedidoMatch) return `CONFIRMADO PEDIDO ${pedidoMatch[1]}`;
+  if (estado.startsWith("CONFIRMADO")) return "SEPARADO";
+  if (estado === "NO CONFIRMADO") return "";
+  return null;
+}
 
 function EstadoBadge({ estado, onAdvance }: { estado: string; onAdvance?: (next: string) => void }) {
   const styles: Record<string, string> = {
     "SEPARADO": "bg-success/15 text-success border-success/20",
     "CONFIRMADO": "bg-primary/15 text-primary border-primary/20",
     "NO CONFIRMADO": "bg-destructive/15 text-destructive border-destructive/20",
-    "PEDIDO 9": "bg-info/15 text-info border-info/20",
-    "PEDIDO 10": "bg-info/15 text-info border-info/20",
-    "PEDIDO 11": "bg-info/15 text-info border-info/20",
-    "PEDIDO 21": "bg-primary/15 text-primary border-primary/20",
     "NO CLASIFICA": "bg-muted text-muted-foreground border-border",
   };
-  const style = styles[estado] || "bg-muted text-muted-foreground border-border";
-  const nextState = ESTADO_FLOW[estado];
+
+  const getStyle = (e: string) => {
+    if (styles[e]) return styles[e];
+    if (e.startsWith("CONFIRMADO")) return "bg-primary/15 text-primary border-primary/20";
+    if (e.startsWith("PEDIDO")) return "bg-info/15 text-info border-info/20";
+    return "bg-muted text-muted-foreground border-border";
+  };
+
+  const nextState = getNextEstado(estado);
 
   if (!estado) return <span className="text-muted-foreground text-xs">—</span>;
 
   return (
     <div className="flex items-center gap-1">
-      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${style}`}>
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${getStyle(estado)}`}>
         {estado}
       </span>
-      {nextState !== undefined && onAdvance && (
+      {nextState !== null && onAdvance && (
         <button
           onClick={() => onAdvance(nextState)}
           className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
@@ -69,18 +71,18 @@ interface OrdersTableProps {
   onUpdateEstado: (id: number, estado: string) => void;
   selectedIds: Set<number>;
   onSelectionChange: (ids: Set<number>) => void;
+  decimals: number;
 }
 
-export function OrdersTable({ orders, onEdit, onDelete, onBulkDelete, onBulkEdit, onUpdateEstado, selectedIds, onSelectionChange }: OrdersTableProps) {
+export function OrdersTable({ orders, onEdit, onDelete, onBulkDelete, onBulkEdit, onUpdateEstado, selectedIds, onSelectionChange, decimals }: OrdersTableProps) {
   const allSelected = orders.length > 0 && orders.every(o => selectedIds.has(o.id));
   const someSelected = orders.some(o => selectedIds.has(o.id));
 
+  const fmt = (v: number | null) => v != null ? `Bs ${v.toFixed(decimals)}` : null;
+
   const toggleAll = () => {
-    if (allSelected) {
-      onSelectionChange(new Set());
-    } else {
-      onSelectionChange(new Set(orders.map(o => o.id)));
-    }
+    if (allSelected) onSelectionChange(new Set());
+    else onSelectionChange(new Set(orders.map(o => o.id)));
   };
 
   const toggleOne = (id: number) => {
@@ -116,23 +118,23 @@ export function OrdersTable({ orders, onEdit, onDelete, onBulkDelete, onBulkEdit
       )}
 
       <div className="rounded-lg border border-border bg-card overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="p-3 w-10">
+            <thead className="sticky top-0 z-[5]">
+              <tr className="border-b border-border bg-card shadow-[0_1px_3px_0_rgba(0,0,0,0.05)]">
+                <th className="p-3 w-10 bg-card">
                   <button onClick={toggleAll} className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${allSelected ? 'bg-primary border-primary text-primary-foreground' : someSelected ? 'bg-primary/30 border-primary' : 'border-border hover:border-muted-foreground'}`}>
                     {allSelected && <Check className="h-3 w-3" />}
                   </button>
                 </th>
-                <th className="text-left p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Título</th>
-                <th className="text-left p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Tipo</th>
-                <th className="text-right p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Precio</th>
-                <th className="text-right p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Pago</th>
-                <th className="text-right p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Saldo</th>
-                <th className="text-left p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Cliente</th>
-                <th className="text-left p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Estado</th>
-                <th className="text-center p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Acciones</th>
+                <th className="text-left p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider bg-card">Título</th>
+                <th className="text-left p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider bg-card">Tipo</th>
+                <th className="text-right p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider bg-card">Precio</th>
+                <th className="text-right p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider bg-card">Pago</th>
+                <th className="text-right p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider bg-card">Saldo</th>
+                <th className="text-left p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider bg-card">Cliente</th>
+                <th className="text-left p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider bg-card">Estado</th>
+                <th className="text-center p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider bg-card">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -146,13 +148,13 @@ export function OrdersTable({ orders, onEdit, onDelete, onBulkDelete, onBulkEdit
                   <td className="p-3 font-medium max-w-[240px] truncate">{order.titulo}</td>
                   <td className="p-3"><TipoBadge tipo={order.tipo} /></td>
                   <td className="p-3 text-right tabular-nums">
-                    {order.precioVendido != null ? `Bs ${order.precioVendido.toFixed(1)}` : <span className="text-muted-foreground">—</span>}
+                    {fmt(order.precioVendido) || <span className="text-muted-foreground">—</span>}
                   </td>
                   <td className="p-3 text-right tabular-nums">
-                    {order.pago != null ? `Bs ${order.pago.toFixed(1)}` : <span className="text-muted-foreground">—</span>}
+                    {fmt(order.pago) || <span className="text-muted-foreground">—</span>}
                   </td>
                   <td className={`p-3 text-right tabular-nums font-medium ${(order.saldo ?? 0) > 0 ? 'text-warning' : 'text-success'}`}>
-                    {order.saldo != null ? `Bs ${order.saldo.toFixed(1)}` : <span className="text-muted-foreground">—</span>}
+                    {fmt(order.saldo) || <span className="text-muted-foreground">—</span>}
                   </td>
                   <td className="p-3 text-muted-foreground font-mono text-xs">{order.numero || "—"}</td>
                   <td className="p-3">

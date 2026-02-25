@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, Filter, BookOpen, Users, List, Loader2 } from "lucide-react";
+import { Search, Filter, BookOpen, Users, List, Loader2, Hash } from "lucide-react";
 import { Order, getStats } from "@/data/orders";
 import { useOrders } from "@/hooks/useOrders";
 import { StatsRow } from "@/components/StatsRow";
@@ -15,7 +15,7 @@ const Index = () => {
   const {
     orders, loading, estados,
     addOrders, updateOrder, deleteOrder, deleteMany,
-    updateEstado, applyPayment, bulkEdit,
+    updateEstado, applyPayment, bulkEdit, bulkEditIndividual,
   } = useOrders();
 
   const [search, setSearch] = useState("");
@@ -26,6 +26,7 @@ const Index = () => {
   const [payClient, setPayClient] = useState<string | null>(null);
   const [estadoOrder, setEstadoOrder] = useState<Order | null>(null);
   const [bulkEditIds, setBulkEditIds] = useState<number[]>([]);
+  const [decimals, setDecimals] = useState(1);
 
   const filtered = useMemo(() => {
     return orders.filter((o) => {
@@ -38,9 +39,7 @@ const Index = () => {
   const stats = useMemo(() => getStats(filtered), [filtered]);
 
   const handleDelete = (id: number) => {
-    if (window.confirm("¿Eliminar este pedido?")) {
-      deleteOrder(id);
-    }
+    if (window.confirm("¿Eliminar este pedido?")) deleteOrder(id);
   };
 
   const handleBulkDelete = (ids: number[]) => {
@@ -64,6 +63,16 @@ const Index = () => {
     setBulkEditIds([]);
     setSelectedIds(new Set());
   };
+
+  const handleSmartBulkEstado = (updates: { id: number; estado: string }[]) => {
+    bulkEditIndividual(updates);
+    setBulkEditIds([]);
+    setSelectedIds(new Set());
+  };
+
+  const selectedOrders = useMemo(() => {
+    return orders.filter(o => bulkEditIds.includes(o.id));
+  }, [orders, bulkEditIds]);
 
   if (loading) {
     return (
@@ -95,16 +104,28 @@ const Index = () => {
                 <Users className="h-3.5 w-3.5" /> Clientes
               </button>
             </div>
-            <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-md font-medium">
-              {orders.length} pedidos
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-md font-medium">
+                {orders.length} pedidos
+              </span>
+              <select
+                value={decimals}
+                onChange={e => setDecimals(Number(e.target.value))}
+                className="text-[10px] bg-muted border border-border rounded px-1.5 py-1 text-muted-foreground cursor-pointer focus:outline-none"
+                title="Decimales"
+              >
+                <option value={1}>.0</option>
+                <option value={2}>.00</option>
+                <option value={3}>.000</option>
+              </select>
+            </div>
             <AddOrderDialog onAdd={addOrders} estados={estados} />
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        <StatsRow stats={stats} />
+        <StatsRow stats={stats} decimals={decimals} />
 
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
@@ -142,16 +163,17 @@ const Index = () => {
             onUpdateEstado={handleUpdateEstado}
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
+            decimals={decimals}
           />
         ) : (
-          <ClientsView orders={filtered} onPayClient={setPayClient} />
+          <ClientsView orders={filtered} onPayClient={setPayClient} decimals={decimals} onUpdatePayment={applyPayment} />
         )}
       </main>
 
-      <EditOrderDialog order={editOrder} open={!!editOrder} onClose={() => setEditOrder(null)} onSave={(o) => { updateOrder(o); setEditOrder(null); }} estados={estados} />
-      <ClientPaymentDialog orders={orders} cliente={payClient || ""} open={!!payClient} onClose={() => setPayClient(null)} onApplyPayment={applyPayment} />
+      <EditOrderDialog order={editOrder} open={!!editOrder} onClose={() => setEditOrder(null)} onSave={(o) => { updateOrder(o); setEditOrder(null); }} estados={estados} decimals={decimals} />
+      <ClientPaymentDialog orders={orders} cliente={payClient || ""} open={!!payClient} onClose={() => setPayClient(null)} onApplyPayment={applyPayment} decimals={decimals} />
       <EstadoQuickActions order={estadoOrder} open={!!estadoOrder} onClose={() => setEstadoOrder(null)} onUpdateEstado={handleEstadoConfirm} allEstados={estados} />
-      <BulkEditDialog open={bulkEditIds.length > 0} onClose={() => setBulkEditIds([])} count={bulkEditIds.length} onApply={handleBulkEdit} estados={estados} />
+      <BulkEditDialog open={bulkEditIds.length > 0} onClose={() => setBulkEditIds([])} orders={selectedOrders} onApply={handleBulkEdit} onSmartEstado={handleSmartBulkEstado} estados={estados} />
     </div>
   );
 };
