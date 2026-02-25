@@ -135,7 +135,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
           <Plus className="h-4 w-4" /> Agregar Pedido
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto resize overflow-auto" style={{ minWidth: 400, minHeight: 300 }}>
+      <DialogContent className="max-w-4xl w-[90vw] max-h-[85vh] overflow-y-auto resize overflow-auto" style={{ minWidth: 400, minHeight: 300 }}>
         <DialogHeader>
           <DialogTitle className="font-display text-xl">Nuevo Pedido</DialogTitle>
         </DialogHeader>
