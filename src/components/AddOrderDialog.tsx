@@ -99,7 +99,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
         tipo: it.tipo,
         precioVendido: it.precioVendido ? parseFloat(it.precioVendido) : null,
         precioRegular: it.precioRegular ? parseFloat(it.precioRegular) : null,
-        pago: it.pago ? parseFloat(it.pago) : null,
+        pago: it.pago ? parseFloat(it.pago) : 0,
         saldo: it.precioVendido ? getSaldo(it) : null,
         numero: cliente,
         estado: it.estado || estado,

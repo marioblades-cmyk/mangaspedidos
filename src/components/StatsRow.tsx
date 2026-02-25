@@ -35,7 +35,7 @@ export function StatCard({ title, value, subtitle, icon, variant = "default" }: 
   );
 }
 
-export function StatsRow({ stats }: { stats: { totalPedidos: number; totalVentas: number; totalPagado: number; totalSaldo: number; pagados: number; pendientes: number } }) {
+export function StatsRow({ stats, decimals = 1 }: { stats: { totalPedidos: number; totalVentas: number; totalPagado: number; totalSaldo: number; pagados: number; pendientes: number }; decimals?: number }) {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <StatCard
@@ -47,19 +47,19 @@ export function StatsRow({ stats }: { stats: { totalPedidos: number; totalVentas
       />
       <StatCard
         title="Ventas Totales"
-        value={`Bs ${stats.totalVentas.toFixed(0)}`}
+        value={`Bs ${stats.totalVentas.toFixed(decimals)}`}
         icon={<DollarSign className="h-5 w-5" />}
         variant="default"
       />
       <StatCard
         title="Total Cobrado"
-        value={`Bs ${stats.totalPagado.toFixed(0)}`}
+        value={`Bs ${stats.totalPagado.toFixed(decimals)}`}
         icon={<CreditCard className="h-5 w-5" />}
         variant="success"
       />
       <StatCard
         title="Saldo Pendiente"
-        value={`Bs ${stats.totalSaldo.toFixed(0)}`}
+        value={`Bs ${stats.totalSaldo.toFixed(decimals)}`}
         icon={<AlertCircle className="h-5 w-5" />}
         variant="warning"
       />

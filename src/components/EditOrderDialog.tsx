@@ -9,9 +9,10 @@ interface EditOrderDialogProps {
   onClose: () => void;
   onSave: (order: Order) => void;
   estados: string[];
+  decimals?: number;
 }
 
-export function EditOrderDialog({ order, open, onClose, onSave, estados }: EditOrderDialogProps) {
+export function EditOrderDialog({ order, open, onClose, onSave, estados, decimals = 1 }: EditOrderDialogProps) {
   const [form, setForm] = useState<Order | null>(null);
 
   useEffect(() => {
@@ -20,7 +21,8 @@ export function EditOrderDialog({ order, open, onClose, onSave, estados }: EditO
 
   if (!form) return null;
 
-  const saldo = (form.precioVendido ?? 0) - (form.pago ?? 0);
+  const pago = form.pago ?? 0;
+  const saldo = (form.precioVendido ?? 0) - pago;
 
   const update = (field: keyof Order, value: string) => {
     setForm(prev => {
@@ -34,7 +36,9 @@ export function EditOrderDialog({ order, open, onClose, onSave, estados }: EditO
 
   const handleSave = () => {
     if (!form) return;
-    onSave({ ...form, saldo: Math.max(0, saldo) });
+    const finalPago = form.pago ?? 0;
+    const finalSaldo = Math.max(0, (form.precioVendido ?? 0) - finalPago);
+    onSave({ ...form, pago: finalPago, saldo: finalSaldo });
     onClose();
   };
 
@@ -84,12 +88,12 @@ export function EditOrderDialog({ order, open, onClose, onSave, estados }: EditO
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>Pago</label>
-              <input type="number" value={form.pago ?? ""} onChange={e => update("pago", e.target.value)} className={inputClass} />
+              <input type="number" value={form.pago ?? ""} onChange={e => update("pago", e.target.value)} placeholder="0" className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>Saldo (auto)</label>
               <div className={`px-3 py-2 rounded-lg border border-border bg-muted/50 text-sm font-medium tabular-nums ${saldo > 0 ? "text-warning" : "text-success"}`}>
-                Bs {Math.max(0, saldo).toFixed(2)}
+                Bs {Math.max(0, saldo).toFixed(decimals)}
               </div>
             </div>
           </div>
