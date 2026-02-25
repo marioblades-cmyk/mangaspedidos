@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, Filter, BookOpen, Users, List, Loader2, Hash } from "lucide-react";
+import { Search, Filter, BookOpen, Users, List, Loader2, Archive } from "lucide-react";
 import { Order, getStats } from "@/data/orders";
 import { useOrders } from "@/hooks/useOrders";
 import { useClientPayments } from "@/hooks/useClientPayments";
@@ -11,6 +11,7 @@ import { ClientsView } from "@/components/ClientsView";
 import { ClientPaymentDialog } from "@/components/ClientPaymentDialog";
 import { EstadoQuickActions } from "@/components/EstadoQuickActions";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
+import { Switch } from "@/components/ui/switch";
 
 const Index = () => {
   const {
@@ -30,14 +31,16 @@ const Index = () => {
   const [estadoOrder, setEstadoOrder] = useState<Order | null>(null);
   const [bulkEditIds, setBulkEditIds] = useState<number[]>([]);
   const [decimals, setDecimals] = useState(1);
+  const [showEnviados, setShowEnviados] = useState(false);
 
   const filtered = useMemo(() => {
     return orders.filter((o) => {
       const matchSearch = !search || o.titulo.toLowerCase().includes(search.toLowerCase()) || o.numero.includes(search);
       const matchEstado = !estadoFilter || o.estado === estadoFilter;
-      return matchSearch && matchEstado;
+      const matchEnviado = showEnviados || o.estado !== "ENVIADO";
+      return matchSearch && matchEstado && matchEnviado;
     });
-  }, [orders, search, estadoFilter]);
+  }, [orders, search, estadoFilter, showEnviados]);
 
   const stats = useMemo(() => getStats(filtered), [filtered]);
 
@@ -154,6 +157,11 @@ const Index = () => {
               ))}
             </select>
           </div>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card border border-border">
+            <Archive className="h-4 w-4 text-muted-foreground" />
+            <label htmlFor="show-enviados" className="text-xs text-muted-foreground cursor-pointer select-none">Ver Enviados</label>
+            <Switch id="show-enviados" checked={showEnviados} onCheckedChange={setShowEnviados} className="scale-75" />
+          </div>
         </div>
 
         {view === "table" ? (
@@ -169,7 +177,17 @@ const Index = () => {
             decimals={decimals}
           />
         ) : (
-          <ClientsView orders={filtered} onPayClient={setPayClient} decimals={decimals} onUpdatePayment={applyPayment} clientPayments={clientPayments} getClientPaidTotal={getClientPaidTotal} onDeleteGeneralPayment={deletePayment} />
+          <ClientsView
+            orders={filtered}
+            onPayClient={setPayClient}
+            decimals={decimals}
+            onUpdatePayment={applyPayment}
+            clientPayments={clientPayments}
+            getClientPaidTotal={getClientPaidTotal}
+            onDeleteGeneralPayment={deletePayment}
+            onUpdateEstado={updateEstado}
+            showEnviados={showEnviados}
+          />
         )}
       </main>
 
