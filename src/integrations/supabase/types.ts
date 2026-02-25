@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_payments: {
+        Row: {
+          created_at: string
+          id: number
+          monto: number
+          nota: string
+          numero: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          monto?: number
+          nota?: string
+          numero?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          monto?: number
+          nota?: string
+          numero?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           created_at: string
