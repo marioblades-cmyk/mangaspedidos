@@ -23,38 +23,39 @@ export function WhatsAppMenu({ numero, items, clientPayments, generalPaid, saldo
   const separados = items.filter(o => (o.estado || "").toUpperCase().includes("SEPARADO"));
   const pedidos = items.filter(o => /PEDIDO\s*\d/i.test(o.estado || "") || (o.estado || "").toUpperCase().includes("CONFIRMADO"));
   const totalPrecio = items.reduce((s, o) => s + (o.precioVendido ?? 0), 0);
-  const totalPagado = items.reduce((s, o) => s + (o.pago ?? 0), 0) + generalPaid;
   const lastPayment = clientPayments.length > 0 ? clientPayments[0] : null;
 
-  const hasSeparados = separados.length > 0;
+  const allSeparados = items.length > 0 && items.every(o => (o.estado || "").toUpperCase().includes("SEPARADO"));
   const hasGeneralPayments = clientPayments.length > 0;
 
   const itemLine = (o: Order) => `- ${o.titulo}: P. Vendido: Bs ${fmt(o.precioVendido ?? 0)} | Pago: Bs ${fmt(o.pago ?? 0)} | Saldo: Bs ${fmt(o.saldo ?? 0)}`;
 
-  const historialAbonos = () => {
+  const historialPagos = () => {
     if (clientPayments.length === 0) return "";
-    const lines = clientPayments.map((p, i) => `  ${i + 1}. Bs ${fmt(p.monto)}${p.nota ? ` (${p.nota})` : ""}`).join("\n");
-    return `\nHistorial de Abonos:\n${lines}`;
+    const sorted = [...clientPayments].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const lines = sorted.map((p, i) => `  Pago ${i + 1}: Bs ${fmt(p.monto)}${p.nota ? ` (${p.nota})` : ""}`).join("\n");
+    return `\nHistorial de Pagos:\n${lines}`;
   };
 
   const buildAviso = () => {
     const detalle = separados.map(itemLine).join("\n");
-    return `¡Hola! Tus pedidos ya están listos para entrega. Detalle de tu cuenta:\n\n${detalle}${historialAbonos()}\n\nSaldo Total: Bs ${fmt(saldoAjustado)}\n\nResponde a este mensaje para coordinar el envío o la entrega en local.`;
+    const totalPagos = items.reduce((s, o) => s + (o.pago ?? 0), 0) + generalPaid;
+    return `¡Hola! Tus pedidos ya están listos para entrega. Detalle de tu cuenta:\n\n${detalle}${historialPagos()}\n\nTotal Pagos: Bs ${fmt(totalPagos)}\nTOTAL A PAGAR: Bs ${fmt(saldoAjustado)}\n\nResponde a este mensaje para coordinar el envío o la entrega en local.`;
   };
 
   const buildConfirmacion = () => {
     const allItems = items.filter(o => o.estado !== "ENVIADO").map(itemLine).join("\n");
-    return `¡Hola! Hemos registrado tu nuevo abono a cuenta. Detalle actualizado:\n\nAbono Recibido: Bs ${fmt(lastPayment?.monto ?? 0)}\n\nDetalle de Pedidos:\n${allItems}${historialAbonos()}\n\nSaldo Total Pendiente: Bs ${fmt(saldoAjustado)}\n\n¡Gracias por tu pago!`;
+    return `¡Hola! Hemos registrado tu nuevo pago a cuenta. Detalle actualizado:\n\nPago Recibido: Bs ${fmt(lastPayment?.monto ?? 0)}\n\nDetalle de Pedidos:\n${allItems}${historialPagos()}\n\nSaldo Total Pendiente: Bs ${fmt(saldoAjustado)}\n\n¡Gracias por tu pago!`;
   };
 
   const buildGeneral = () => {
     const sepList = separados.length > 0 ? `Listos para entrega:\n${separados.map(itemLine).join("\n")}` : "Listos para entrega: Ninguno";
     const pedList = pedidos.length > 0 ? `En camino:\n${pedidos.map(itemLine).join("\n")}` : "En camino: Ninguno";
-    const totalPago = items.reduce((s, o) => s + (o.pago ?? 0), 0) + generalPaid;
-    return `¡Hola! Este es tu resumen de cuenta actualizado:\n\n${sepList}\n\n${pedList}${historialAbonos()}\n\nResumen Financiero:\nTotal en Libros: Bs ${fmt(totalPrecio)} | Total Pago: Bs ${fmt(totalPago)}\nSaldo Actual: Bs ${fmt(saldoAjustado)}\n\n¡Cualquier duda me avisas!`;
+    const totalPagos = items.reduce((s, o) => s + (o.pago ?? 0), 0) + generalPaid;
+    return `¡Hola! Este es tu resumen de cuenta actualizado:\n\n${sepList}\n\n${pedList}${historialPagos()}\n\nResumen Financiero:\nTotal en Libros: Bs ${fmt(totalPrecio)} | Total Pagos: Bs ${fmt(totalPagos)}\nSaldo Actual: Bs ${fmt(saldoAjustado)}\n\n¡Cualquier duda me avisas!`;
   };
 
-  const waUrl = (msg: string) => `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  const waUrl = (msg: string) => `whatsapp://send?phone=${phone}&text=${encodeURIComponent(msg)}`;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -71,11 +72,11 @@ export function WhatsAppMenu({ numero, items, clientPayments, generalPaid, saldo
           <span className="text-xs font-semibold">Enviar por WhatsApp</span>
         </div>
         <div className="p-1.5 space-y-1">
-          {hasSeparados ? (
+          {allSeparados ? (
             <a
               href={waUrl(buildAviso())}
-              target="_blank"
-              rel="noopener noreferrer"
+              target="wa_business_window"
+              rel="noopener"
               onClick={() => setOpen(false)}
               className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left hover:bg-muted/50 transition-colors no-underline text-foreground"
             >
@@ -90,15 +91,15 @@ export function WhatsAppMenu({ numero, items, clientPayments, generalPaid, saldo
               <Send className="h-4 w-4 text-success mt-0.5 shrink-0" />
               <div>
                 <p className="text-xs font-medium">Aviso de Entrega</p>
-                <p className="text-[10px] text-muted-foreground">Sin ítems separados</p>
+                <p className="text-[10px] text-muted-foreground">No todos los ítems están separados</p>
               </div>
             </div>
           )}
           {hasGeneralPayments ? (
             <a
               href={waUrl(buildConfirmacion())}
-              target="_blank"
-              rel="noopener noreferrer"
+              target="wa_business_window"
+              rel="noopener"
               onClick={() => setOpen(false)}
               className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left hover:bg-muted/50 transition-colors no-underline text-foreground"
             >
@@ -119,8 +120,8 @@ export function WhatsAppMenu({ numero, items, clientPayments, generalPaid, saldo
           )}
           <a
             href={waUrl(buildGeneral())}
-            target="_blank"
-            rel="noopener noreferrer"
+            target="wa_business_window"
+            rel="noopener"
             onClick={() => setOpen(false)}
             className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left hover:bg-muted/50 transition-colors no-underline text-foreground"
           >
