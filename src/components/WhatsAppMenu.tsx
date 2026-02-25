@@ -49,9 +49,16 @@ export function WhatsAppMenu({ numero, items, clientPayments, generalPaid, saldo
   };
 
   const sendWhatsApp = (message: string) => {
-    const phone = numero.replace(/\D/g, "");
+    const digits = numero.replace(/\D/g, "");
+    const phone = digits.startsWith("591") ? digits : `591${digits}`;
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank");
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     setOpen(false);
   };
 
