@@ -17,6 +17,9 @@ export function WhatsAppMenu({ numero, items, clientPayments, generalPaid, saldo
   const [open, setOpen] = useState(false);
   const fmt = (v: number) => v.toFixed(decimals);
 
+  const digits = numero.replace(/\D/g, "");
+  const phone = digits.startsWith("591") ? digits : `591${digits}`;
+
   const separados = items.filter(o => (o.estado || "").toUpperCase().includes("SEPARADO"));
   const pedidos = items.filter(o => /PEDIDO\s*\d/i.test(o.estado || "") || (o.estado || "").toUpperCase().includes("CONFIRMADO"));
   const totalPrecio = items.reduce((s, o) => s + (o.precioVendido ?? 0), 0);
@@ -27,12 +30,10 @@ export function WhatsAppMenu({ numero, items, clientPayments, generalPaid, saldo
   const hasGeneralPayments = clientPayments.length > 0;
 
   const listItems = (list: Order[]) => list.map(o => `• ${o.titulo}`).join("\n");
-
   const saldoSeparados = separados.reduce((s, o) => s + (o.saldo ?? 0), 0);
 
-  const buildAviso = () => {
-    return `¡Hola! Tus pedidos ya están listos en MangaTracker 📚.\n${listItems(separados)}\nSaldo total a pagar: Bs ${fmt(saldoAjustado > 0 ? Math.min(saldoAjustado, saldoSeparados) : saldoSeparados)}.\nResponde a este mensaje para coordinar el envío o la entrega en local.`;
-  };
+  const buildAviso = () =>
+    `¡Hola! Tus pedidos ya están listos en MangaTracker 📚.\n${listItems(separados)}\nSaldo total a pagar: Bs ${fmt(saldoAjustado > 0 ? Math.min(saldoAjustado, saldoSeparados) : saldoSeparados)}.\nResponde a este mensaje para coordinar el envío o la entrega en local.`;
 
   const buildConfirmacion = () => {
     const itemDetail = items
@@ -48,19 +49,7 @@ export function WhatsAppMenu({ numero, items, clientPayments, generalPaid, saldo
     return `¡Hola! Tu resumen en MangaTracker 📝:\n${separadosList}\n${pedidosList}\nTotal Libros: Bs ${fmt(totalPrecio)}.\nTotal Pagado: Bs ${fmt(totalPagado)}.\nSaldo Actual: Bs ${fmt(saldoAjustado)}.`;
   };
 
-  const sendWhatsApp = (message: string) => {
-    const digits = numero.replace(/\D/g, "");
-    const phone = digits.startsWith("591") ? digits : `591${digits}`;
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    const a = document.createElement("a");
-    a.href = url;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setOpen(false);
-  };
+  const waUrl = (msg: string) => `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -77,38 +66,65 @@ export function WhatsAppMenu({ numero, items, clientPayments, generalPaid, saldo
           <span className="text-xs font-semibold">Enviar por WhatsApp</span>
         </div>
         <div className="p-1.5 space-y-1">
-          <button
-            disabled={!hasSeparados}
-            onClick={() => sendWhatsApp(buildAviso())}
-            className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left hover:bg-muted/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Send className="h-4 w-4 text-success mt-0.5 shrink-0" />
-            <div>
-              <p className="text-xs font-medium">Aviso de Entrega</p>
-              <p className="text-[10px] text-muted-foreground">{hasSeparados ? `${separados.length} ítem(s) listos` : "Sin ítems separados"}</p>
+          {hasSeparados ? (
+            <a
+              href={waUrl(buildAviso())}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setOpen(false)}
+              className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left hover:bg-muted/50 transition-colors no-underline text-foreground"
+            >
+              <Send className="h-4 w-4 text-success mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs font-medium">Aviso de Entrega</p>
+                <p className="text-[10px] text-muted-foreground">{separados.length} ítem(s) listos</p>
+              </div>
+            </a>
+          ) : (
+            <div className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left opacity-40 cursor-not-allowed">
+              <Send className="h-4 w-4 text-success mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs font-medium">Aviso de Entrega</p>
+                <p className="text-[10px] text-muted-foreground">Sin ítems separados</p>
+              </div>
             </div>
-          </button>
-          <button
-            disabled={!hasGeneralPayments}
-            onClick={() => sendWhatsApp(buildConfirmacion())}
-            className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left hover:bg-muted/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <DollarSign className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-            <div>
-              <p className="text-xs font-medium">Confirmación de Pago</p>
-              <p className="text-[10px] text-muted-foreground">{hasGeneralPayments ? `Último: Bs ${fmt(lastPayment!.monto)}` : "Sin pagos generales"}</p>
+          )}
+          {hasGeneralPayments ? (
+            <a
+              href={waUrl(buildConfirmacion())}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setOpen(false)}
+              className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left hover:bg-muted/50 transition-colors no-underline text-foreground"
+            >
+              <DollarSign className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs font-medium">Confirmación de Pago</p>
+                <p className="text-[10px] text-muted-foreground">Último: Bs {fmt(lastPayment!.monto)}</p>
+              </div>
+            </a>
+          ) : (
+            <div className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left opacity-40 cursor-not-allowed">
+              <DollarSign className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs font-medium">Confirmación de Pago</p>
+                <p className="text-[10px] text-muted-foreground">Sin pagos generales</p>
+              </div>
             </div>
-          </button>
-          <button
-            onClick={() => sendWhatsApp(buildGeneral())}
-            className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left hover:bg-muted/50 transition-colors"
+          )}
+          <a
+            href={waUrl(buildGeneral())}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setOpen(false)}
+            className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left hover:bg-muted/50 transition-colors no-underline text-foreground"
           >
             <FileText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
             <div>
               <p className="text-xs font-medium">Estado General</p>
               <p className="text-[10px] text-muted-foreground">Resumen completo del cliente</p>
             </div>
-          </button>
+          </a>
         </div>
       </PopoverContent>
     </Popover>
