@@ -32,8 +32,15 @@ export function WhatsAppMenu({ numero, items, clientPayments, generalPaid, saldo
   const listItems = (list: Order[]) => list.map(o => `• ${o.titulo}`).join("\n");
   const saldoSeparados = separados.reduce((s, o) => s + (o.saldo ?? 0), 0);
 
-  const buildAviso = () =>
-    `¡Hola! Tus pedidos ya están listos en MangaTracker 📚.\n${listItems(separados)}\nSaldo total a pagar: Bs ${fmt(saldoAjustado > 0 ? Math.min(saldoAjustado, saldoSeparados) : saldoSeparados)}.\nResponde a este mensaje para coordinar el envío o la entrega en local.`;
+  const buildAviso = () => {
+    const detalle = separados
+      .map(o => `- ${o.titulo}: Precio Bs ${fmt(o.precioVendido ?? 0)} | Pagado: Bs ${fmt(o.pago ?? 0)} | Saldo: Bs ${fmt(o.saldo ?? 0)}`)
+      .join("\n");
+    const subtotal = saldoSeparados;
+    const abonos = generalPaid;
+    const totalPagar = Math.max(subtotal - abonos, 0);
+    return `¡Hola! Tus pedidos ya están listos para entrega:\n${detalle}\n\n💰 Resumen de Pago:\nSubtotal: Bs ${fmt(subtotal)}\nAbonos: Bs ${fmt(abonos)}\nTOTAL A PAGAR: Bs ${fmt(totalPagar)}\n\nResponde a este mensaje para coordinar tu entrega o envío.`;
+  };
 
   const buildConfirmacion = () => {
     const itemDetail = items
