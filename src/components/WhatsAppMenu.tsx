@@ -59,7 +59,6 @@ export function WhatsAppMenu({ numero, items, clientPayments, generalPaid, saldo
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          onClick={(e) => e.stopPropagation()}
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-[hsl(142,70%,45%)] text-white text-xs font-medium hover:bg-[hsl(142,70%,40%)] transition-colors"
           title="Enviar mensaje por WhatsApp"
         >
