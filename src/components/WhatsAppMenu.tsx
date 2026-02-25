@@ -51,7 +51,7 @@ export function WhatsAppMenu({ numero, items, clientPayments, generalPaid, saldo
     const sepList = separados.length > 0 ? `Listos para entrega:\n${separados.map(itemLine).join("\n")}` : "Listos para entrega: Ninguno";
     const pedList = pedidos.length > 0 ? `En camino:\n${pedidos.map(itemLine).join("\n")}` : "En camino: Ninguno";
     const totalPago = items.reduce((s, o) => s + (o.pago ?? 0), 0) + generalPaid;
-    return `¡Hola! Este es tu resumen de cuenta actualizado:\n\n${sepList}\n\n${pedList}\n\nResumen Financiero:\nTotal en Libros: Bs ${fmt(totalPrecio)} | Total Pago: Bs ${fmt(totalPago)}\nSaldo Actual: Bs ${fmt(saldoAjustado)}\n\n¡Cualquier duda me avisas!`;
+    return `¡Hola! Este es tu resumen de cuenta actualizado:\n\n${sepList}\n\n${pedList}${historialAbonos()}\n\nResumen Financiero:\nTotal en Libros: Bs ${fmt(totalPrecio)} | Total Pago: Bs ${fmt(totalPago)}\nSaldo Actual: Bs ${fmt(saldoAjustado)}\n\n¡Cualquier duda me avisas!`;
   };
 
   const waUrl = (msg: string) => `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
