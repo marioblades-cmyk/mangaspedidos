@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Search, Filter, BookOpen, Users, List, Loader2, Hash } from "lucide-react";
 import { Order, getStats } from "@/data/orders";
 import { useOrders } from "@/hooks/useOrders";
+import { useClientPayments } from "@/hooks/useClientPayments";
 import { StatsRow } from "@/components/StatsRow";
 import { OrdersTable } from "@/components/OrdersTable";
 import { AddOrderDialog } from "@/components/AddOrderDialog";
@@ -17,6 +18,8 @@ const Index = () => {
     addOrders, updateOrder, deleteOrder, deleteMany,
     updateEstado, applyPayment, bulkEdit, bulkEditIndividual,
   } = useOrders();
+
+  const { payments: clientPayments, addPayment, deletePayment, getClientPayments, getClientPaidTotal } = useClientPayments();
 
   const [search, setSearch] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("");
@@ -166,12 +169,12 @@ const Index = () => {
             decimals={decimals}
           />
         ) : (
-          <ClientsView orders={filtered} onPayClient={setPayClient} decimals={decimals} onUpdatePayment={applyPayment} />
+          <ClientsView orders={filtered} onPayClient={setPayClient} decimals={decimals} onUpdatePayment={applyPayment} clientPayments={clientPayments} getClientPaidTotal={getClientPaidTotal} onDeleteGeneralPayment={deletePayment} />
         )}
       </main>
 
       <EditOrderDialog order={editOrder} open={!!editOrder} onClose={() => setEditOrder(null)} onSave={(o) => { updateOrder(o); setEditOrder(null); }} estados={estados} decimals={decimals} />
-      <ClientPaymentDialog orders={orders} cliente={payClient || ""} open={!!payClient} onClose={() => setPayClient(null)} onApplyPayment={applyPayment} decimals={decimals} />
+      <ClientPaymentDialog orders={orders} cliente={payClient || ""} open={!!payClient} onClose={() => setPayClient(null)} onApplyPayment={applyPayment} onGeneralPayment={addPayment} decimals={decimals} generalPaidTotal={getClientPaidTotal(payClient || "")} />
       <EstadoQuickActions order={estadoOrder} open={!!estadoOrder} onClose={() => setEstadoOrder(null)} onUpdateEstado={handleEstadoConfirm} allEstados={estados} />
       <BulkEditDialog open={bulkEditIds.length > 0} onClose={() => setBulkEditIds([])} orders={selectedOrders} onApply={handleBulkEdit} onSmartEstado={handleSmartBulkEstado} estados={estados} />
     </div>
