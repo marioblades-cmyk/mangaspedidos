@@ -29,31 +29,29 @@ export function WhatsAppMenu({ numero, items, clientPayments, generalPaid, saldo
   const hasSeparados = separados.length > 0;
   const hasGeneralPayments = clientPayments.length > 0;
 
-  const listItems = (list: Order[]) => list.map(o => `• ${o.titulo}`).join("\n");
-  const saldoSeparados = separados.reduce((s, o) => s + (o.saldo ?? 0), 0);
+  const itemLine = (o: Order) => `- ${o.titulo}: P. Vendido: Bs ${fmt(o.precioVendido ?? 0)} | Pago: Bs ${fmt(o.pago ?? 0)} | Saldo: Bs ${fmt(o.saldo ?? 0)}`;
+
+  const historialAbonos = () => {
+    if (clientPayments.length === 0) return "";
+    const lines = clientPayments.map((p, i) => `  ${i + 1}. Bs ${fmt(p.monto)}${p.nota ? ` (${p.nota})` : ""}`).join("\n");
+    return `\nHistorial de Abonos:\n${lines}`;
+  };
 
   const buildAviso = () => {
-    const detalle = separados
-      .map(o => `- ${o.titulo}: Precio Bs ${fmt(o.precioVendido ?? 0)} | Pagado: Bs ${fmt(o.pago ?? 0)} | Saldo: Bs ${fmt(o.saldo ?? 0)}`)
-      .join("\n");
-    const subtotal = saldoSeparados;
-    const abonos = generalPaid;
-    const totalPagar = Math.max(subtotal - abonos, 0);
-    return `¡Hola! Tus pedidos ya están listos para entrega:\n${detalle}\n\n💰 Resumen de Pago:\nSubtotal: Bs ${fmt(subtotal)}\nAbonos: Bs ${fmt(abonos)}\nTOTAL A PAGAR: Bs ${fmt(totalPagar)}\n\nResponde a este mensaje para coordinar tu entrega o envío.`;
+    const detalle = separados.map(itemLine).join("\n");
+    return `¡Hola! Tus pedidos ya están listos para entrega. Detalle de tu cuenta:\n\n${detalle}${historialAbonos()}\n\nSaldo Total: Bs ${fmt(saldoAjustado)}\n\nResponde a este mensaje para coordinar el envío o la entrega en local.`;
   };
 
   const buildConfirmacion = () => {
-    const itemDetail = items
-      .filter(o => o.estado !== "ENVIADO")
-      .map(o => `• ${o.titulo}: Bs ${fmt(o.saldo ?? 0)}`)
-      .join("\n");
-    return `¡Hola! Registramos tu pago de Bs ${fmt(lastPayment?.monto ?? 0)} en MangaTracker 💰.\nDetalle de cuenta:\n${itemDetail}\nSaldo pendiente final: Bs ${fmt(saldoAjustado)}.\n¡Gracias!`;
+    const allItems = items.filter(o => o.estado !== "ENVIADO").map(itemLine).join("\n");
+    return `¡Hola! Hemos registrado tu nuevo abono a cuenta. Detalle actualizado:\n\nAbono Recibido: Bs ${fmt(lastPayment?.monto ?? 0)}\n\nDetalle de Pedidos:\n${allItems}${historialAbonos()}\n\nSaldo Total Pendiente: Bs ${fmt(saldoAjustado)}\n\n¡Gracias por tu pago!`;
   };
 
   const buildGeneral = () => {
-    const separadosList = separados.length > 0 ? `Listos para entrega:\n${listItems(separados)}` : "Listos para entrega: Ninguno";
-    const pedidosList = pedidos.length > 0 ? `En camino:\n${listItems(pedidos)}` : "En camino: Ninguno";
-    return `¡Hola! Tu resumen en MangaTracker 📝:\n${separadosList}\n${pedidosList}\nTotal Libros: Bs ${fmt(totalPrecio)}.\nTotal Pagado: Bs ${fmt(totalPagado)}.\nSaldo Actual: Bs ${fmt(saldoAjustado)}.`;
+    const sepList = separados.length > 0 ? `Listos para entrega:\n${separados.map(itemLine).join("\n")}` : "Listos para entrega: Ninguno";
+    const pedList = pedidos.length > 0 ? `En camino:\n${pedidos.map(itemLine).join("\n")}` : "En camino: Ninguno";
+    const totalPago = items.reduce((s, o) => s + (o.pago ?? 0), 0) + generalPaid;
+    return `¡Hola! Este es tu resumen de cuenta actualizado:\n\n${sepList}\n\n${pedList}\n\nResumen Financiero:\nTotal en Libros: Bs ${fmt(totalPrecio)} | Total Pago: Bs ${fmt(totalPago)}\nSaldo Actual: Bs ${fmt(saldoAjustado)}\n\n¡Cualquier duda me avisas!`;
   };
 
   const waUrl = (msg: string) => `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
