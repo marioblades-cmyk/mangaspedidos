@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Order } from "@/data/orders";
-import { DollarSign, ChevronDown, ChevronUp, User, PackageCheck, Wallet, Trash2, Check, Send } from "lucide-react";
+import { DollarSign, ChevronDown, ChevronUp, User, PackageCheck, Wallet, Trash2, Check, Send, CheckSquare } from "lucide-react";
 import { ClientPayment } from "@/hooks/useClientPayments";
 import { WhatsAppMenu } from "@/components/WhatsAppMenu";
 
@@ -9,14 +9,15 @@ interface ClientsViewProps {
   onPayClient: (cliente: string) => void;
   decimals: number;
   onUpdatePayment: (updates: { id: number; pago: number; saldo: number }[]) => void;
-  clientPayments: ClientPayment[];
+  clientPayments: ClientPayment[] | any[];
   getClientPaidTotal: (numero: string) => number;
   onDeleteGeneralPayment: (id: number) => void;
   onUpdateEstado: (id: number, estado: string) => void;
   showEnviados: boolean;
+  readOnly?: boolean;
 }
 
-export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, clientPayments, getClientPaidTotal, onDeleteGeneralPayment, onUpdateEstado, showEnviados }: ClientsViewProps) {
+export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, clientPayments, getClientPaidTotal, onDeleteGeneralPayment, onUpdateEstado, showEnviados, readOnly }: ClientsViewProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [editingPago, setEditingPago] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -37,6 +38,7 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
         const enviadoItems = items.filter(o => o.estado === "ENVIADO");
         const totalSaldo = items.reduce((s, o) => s + (o.saldo ?? 0), 0);
         const generalPaid = getClientPaidTotal(numero);
+        const totalPagado = items.reduce((s, o) => s + (o.pago ?? 0), 0);
         const allEnviado = items.length > 0 && items.every(o => o.estado === "ENVIADO");
         return {
           numero,
@@ -45,9 +47,10 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
           enviadoItems,
           allEnviado,
           totalPrecio: items.reduce((s, o) => s + (o.precioVendido ?? 0), 0),
-          totalPagado: items.reduce((s, o) => s + (o.pago ?? 0), 0),
+          totalPagado,
           totalSaldo,
           generalPaid,
+          sumaTotalPagada: totalPagado + generalPaid,
           saldoAjustado: Math.max(0, totalSaldo - generalPaid),
           allSeparado: pendingItems.length > 0 && pendingItems.every(o => (o.estado || "").toUpperCase().includes("SEPARADO")),
         };
@@ -63,6 +66,7 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
   };
 
   const startEditPago = (order: Order) => {
+    if (readOnly) return;
     setEditingPago(order.id);
     setEditValue(String(order.pago ?? 0));
   };
@@ -75,13 +79,37 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
   };
 
   const getPaymentsForClient = (numero: string) => {
-    return clientPayments.filter(p => p.numero === numero);
+    return (clientPayments as any[]).filter((p: any) => p.numero === numero);
   };
 
   const toggleItem = (id: number) => {
     const next = new Set(selectedItems);
     next.has(id) ? next.delete(id) : next.add(id);
     setSelectedItems(next);
+  };
+
+  const selectAllSeparado = (clientItems: Order[]) => {
+    const separadoIds = clientItems.filter(o => (o.estado || "").toUpperCase().includes("SEPARADO")).map(o => o.id);
+    const allSelected = separadoIds.every(id => selectedItems.has(id));
+    const next = new Set(selectedItems);
+    if (allSelected) {
+      separadoIds.forEach(id => next.delete(id));
+    } else {
+      separadoIds.forEach(id => next.add(id));
+    }
+    setSelectedItems(next);
+  };
+
+  const handleBulkEnviado = (clientItems: Order[]) => {
+    const toMark = clientItems.filter(o => selectedItems.has(o.id) && (o.estado || "").toUpperCase().includes("SEPARADO"));
+    if (toMark.length === 0) return;
+    if (!window.confirm(`¿Marcar ${toMark.length} ítem(s) como ENVIADO?`)) return;
+    toMark.forEach(o => onUpdateEstado(o.id, "ENVIADO"));
+    setSelectedItems(prev => {
+      const next = new Set(prev);
+      toMark.forEach(o => next.delete(o.id));
+      return next;
+    });
   };
 
   const handleDespachar = (clientItems: Order[]) => {
@@ -100,12 +128,19 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
     return clientItems.filter(o => selectedItems.has(o.id) && (o.saldo ?? 0) === 0 && o.estado !== "ENVIADO").length;
   };
 
+  const getBulkEnviadoCount = (clientItems: Order[]) => {
+    return clientItems.filter(o => selectedItems.has(o.id) && (o.estado || "").toUpperCase().includes("SEPARADO")).length;
+  };
+
   return (
     <div className="space-y-2">
       {clients.map(c => {
         const payments = getPaymentsForClient(c.numero);
         const dispatchable = getDispatchableCount(c.items);
+        const bulkEnviadoCount = getBulkEnviadoCount(c.items);
         const clientSelected = c.items.filter(o => selectedItems.has(o.id));
+        const separadoItems = c.items.filter(o => (o.estado || "").toUpperCase().includes("SEPARADO"));
+        const allSeparadoSelected = separadoItems.length > 0 && separadoItems.every(o => selectedItems.has(o.id));
         return (
           <div key={c.numero} className={`rounded-lg border border-border bg-card overflow-hidden ${c.allEnviado ? 'opacity-50' : ''}`}>
             <div
@@ -146,7 +181,7 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
                     Bs {fmt(c.saldoAjustado)}
                   </p>
                 </div>
-                {c.saldoAjustado > 0 && (
+                {!readOnly && c.saldoAjustado > 0 && (
                   <button
                     onClick={(e) => { e.stopPropagation(); onPayClient(c.numero); }}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
@@ -167,30 +202,37 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
             </div>
             {expanded.has(c.numero) && (
               <div className="border-t border-border">
-                {/* Despachar toolbar */}
-                {clientSelected.length > 0 && (
-                  <div className="flex items-center gap-3 px-4 py-2 bg-primary/5 border-b border-border">
-                    <span className="text-xs font-medium">{clientSelected.length} seleccionado(s)</span>
+                {/* Toolbar */}
+                <div className="flex items-center gap-3 px-4 py-2 bg-muted/20 border-b border-border">
+                  {!readOnly && separadoItems.length > 0 && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); selectAllSeparado(c.items); }}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors border ${allSeparadoSelected ? 'bg-primary/10 border-primary/30 text-primary' : 'border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground'}`}
+                    >
+                      <CheckSquare className="h-3.5 w-3.5" />
+                      {allSeparadoSelected ? 'Deseleccionar Separados' : `Seleccionar todos SEPARADO (${separadoItems.length})`}
+                    </button>
+                  )}
+                  {!readOnly && bulkEnviadoCount > 0 && (
+                    <button
+                      onClick={() => handleBulkEnviado(c.items)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-accent text-accent-foreground text-xs font-medium hover:bg-accent/80 transition-colors"
+                    >
+                      <Send className="h-3.5 w-3.5" /> Marcar seleccionados como ENVIADOS ({bulkEnviadoCount})
+                    </button>
+                  )}
+                  {!readOnly && clientSelected.length > 0 && dispatchable > 0 && (
                     <button
                       onClick={() => handleDespachar(c.items)}
-                      disabled={dispatchable === 0}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-success text-success-foreground text-xs font-medium hover:bg-success/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                      title={dispatchable === 0 ? "Solo se pueden despachar ítems con saldo = 0" : `Despachar ${dispatchable} ítem(s)`}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-success text-success-foreground text-xs font-medium hover:bg-success/90 transition-colors"
                     >
-                      <Send className="h-3.5 w-3.5" /> Despachar seleccionados {dispatchable > 0 && `(${dispatchable})`}
+                      <Send className="h-3.5 w-3.5" /> Despachar saldo=0 ({dispatchable})
                     </button>
-                    <button
-                      onClick={() => setSelectedItems(prev => {
-                        const next = new Set(prev);
-                        c.items.forEach(o => next.delete(o.id));
-                        return next;
-                      })}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors ml-auto"
-                    >
-                      Deseleccionar
-                    </button>
-                  </div>
-                )}
+                  )}
+                  {clientSelected.length > 0 && (
+                    <span className="text-xs text-muted-foreground ml-auto">{clientSelected.length} seleccionado(s)</span>
+                  )}
+                </div>
 
                 {/* Items table */}
                 <table className="w-full text-sm">
@@ -211,7 +253,7 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
                     {c.items.map(o => (
                       <tr key={o.id} className={`border-b border-border/30 last:border-0 hover:bg-muted/20 ${o.estado === "ENVIADO" ? 'opacity-40' : ''} ${selectedItems.has(o.id) ? 'bg-primary/5' : ''}`}>
                         <td className="px-3 py-2">
-                          {o.estado !== "ENVIADO" && (
+                          {o.estado !== "ENVIADO" && !readOnly && (
                             <button
                               onClick={() => toggleItem(o.id)}
                               className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${selectedItems.has(o.id) ? 'bg-primary border-primary text-primary-foreground' : 'border-border hover:border-muted-foreground'}`}
@@ -232,7 +274,7 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
                           {o.precioVendido != null ? `Bs ${fmt(o.precioVendido)}` : '—'}
                         </td>
                         <td className="px-4 py-2 text-right tabular-nums text-success">
-                          {editingPago === o.id ? (
+                          {!readOnly && editingPago === o.id ? (
                             <input
                               type="number"
                               value={editValue}
@@ -245,8 +287,8 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
                           ) : (
                             <span
                               onClick={(e) => { e.stopPropagation(); startEditPago(o); }}
-                              className="cursor-pointer hover:bg-primary/10 px-1.5 py-0.5 rounded transition-colors"
-                              title="Clic para editar pago"
+                              className={`${readOnly ? '' : 'cursor-pointer hover:bg-primary/10'} px-1.5 py-0.5 rounded transition-colors`}
+                              title={readOnly ? undefined : "Clic para editar pago"}
                             >
                               {o.pago != null ? `Bs ${fmt(o.pago)}` : '—'}
                             </span>
@@ -269,7 +311,7 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
                       <Wallet className="h-3.5 w-3.5" /> Historial de Pagos Generales
                     </p>
                     <div className="space-y-1">
-                      {payments.map((p, i) => (
+                      {payments.map((p: any, i: number) => (
                         <div key={p.id} className="flex items-center gap-2 text-xs bg-primary/5 border border-primary/10 rounded px-3 py-1.5">
                           <span className="font-medium text-primary">Pago {payments.length - i}:</span>
                           <span className="font-bold tabular-nums">Bs {fmt(p.monto)}</span>
@@ -277,13 +319,15 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
                           <span className="ml-auto text-muted-foreground text-[10px]">
                             {new Date(p.created_at).toLocaleDateString()}
                           </span>
-                          <button
-                            onClick={() => { if (window.confirm("¿Eliminar este pago general?")) onDeleteGeneralPayment(p.id); }}
-                            className="text-destructive/60 hover:text-destructive transition-colors"
-                            title="Eliminar pago"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
+                          {!readOnly && (
+                            <button
+                              onClick={() => { if (window.confirm("¿Eliminar este pago general?")) onDeleteGeneralPayment(p.id); }}
+                              className="text-destructive/60 hover:text-destructive transition-colors"
+                              title="Eliminar pago"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -294,6 +338,7 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
                 <div className="border-t border-border px-4 py-2 bg-muted/30 flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Resumen:</span>
                   <div className="flex items-center gap-4">
+                    <span>Suma Total Pagada: <strong className="text-success">Bs {fmt(c.sumaTotalPagada)}</strong></span>
                     <span>Deuda ítems: <strong className="text-warning">Bs {fmt(c.totalSaldo)}</strong></span>
                     {c.generalPaid > 0 && (
                       <span>Pagos grales: <strong className="text-primary">-Bs {fmt(c.generalPaid)}</strong></span>
