@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Search, Filter, BookOpen, Users, List, Loader2, Archive, LogOut, Shield, Eye } from "lucide-react";
+import { Search, Filter, BookOpen, Users, List, Loader2, Archive, LogOut, Shield, Eye, Package } from "lucide-react";
 import { Order, getStats } from "@/data/orders";
 import { useOrders } from "@/hooks/useOrders";
 import { useClientPayments } from "@/hooks/useClientPayments";
@@ -12,6 +12,7 @@ import { ClientsView } from "@/components/ClientsView";
 import { ClientPaymentDialog } from "@/components/ClientPaymentDialog";
 import { EstadoQuickActions } from "@/components/EstadoQuickActions";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
+import { CatalogView } from "@/components/CatalogView";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -29,7 +30,7 @@ const Index = () => {
   const [estadoFilter, setEstadoFilter] = useState("");
   const [editOrder, setEditOrder] = useState<Order | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [view, setView] = useState<"table" | "clients">("table");
+  const [view, setView] = useState<"table" | "clients" | "catalog">("table");
   const [payClient, setPayClient] = useState<string | null>(null);
   const [estadoOrder, setEstadoOrder] = useState<Order | null>(null);
   const [bulkEditIds, setBulkEditIds] = useState<number[]>([]);
@@ -189,6 +190,9 @@ const Index = () => {
               <button onClick={() => setView("clients")} className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${view === "clients" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
                 <Users className="h-3.5 w-3.5" /> Clientes
               </button>
+              <button onClick={() => setView("catalog")} className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${view === "catalog" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                <Package className="h-3.5 w-3.5" /> Catálogo
+              </button>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-md font-medium">
@@ -251,7 +255,9 @@ const Index = () => {
           </div>
         </div>
 
-        {view === "table" ? (
+        {view === "catalog" ? (
+          <CatalogView />
+        ) : view === "table" ? (
           <OrdersTable
             orders={filtered}
             onEdit={!isSupervising ? setEditOrder : undefined}
