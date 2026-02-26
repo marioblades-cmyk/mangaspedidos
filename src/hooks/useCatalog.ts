@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 export interface CatalogProduct {
   id: number;
   titulo: string;
+  tomo: string;
   isbn: string;
   editorial: string;
   precio_costo_ars: number | null;
@@ -53,8 +54,9 @@ export function useCatalog() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-catalog-excel`,
+        `https://${projectId}.supabase.co/functions/v1/process-catalog-excel`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },

@@ -14,15 +14,12 @@ export function CatalogSearch({ onSelect, value, onChange, className = "", place
   const { searchCatalog } = useCatalog();
   const [results, setResults] = useState<CatalogProduct[]>([]);
   const [open, setOpen] = useState(false);
-  const [searching, setSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -31,23 +28,18 @@ export function CatalogSearch({ onSelect, value, onChange, className = "", place
   const handleChange = (val: string) => {
     onChange(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (val.trim().length < 2) {
-      setResults([]);
-      setOpen(false);
-      return;
-    }
-    setSearching(true);
+    if (val.trim().length < 2) { setResults([]); setOpen(false); return; }
     debounceRef.current = setTimeout(async () => {
       const res = await searchCatalog(val);
       setResults(res);
       setOpen(res.length > 0);
-      setSearching(false);
     }, 300);
   };
 
   const handleSelect = (product: CatalogProduct) => {
-    onSelect(product.titulo);
-    onChange(product.titulo);
+    const fullName = product.tomo ? `${product.titulo} ${product.tomo}` : product.titulo;
+    onSelect(fullName);
+    onChange(fullName);
     setOpen(false);
   };
 
@@ -72,7 +64,7 @@ export function CatalogSearch({ onSelect, value, onChange, className = "", place
               onClick={() => handleSelect(p)}
               className="w-full text-left px-3 py-2 text-xs hover:bg-muted/60 transition-colors border-b border-border/50 last:border-0"
             >
-              <div className="font-medium text-foreground">{p.titulo}</div>
+              <div className="font-medium text-foreground">{p.titulo}{p.tomo ? ` ${p.tomo}` : ""}</div>
               <div className="text-muted-foreground text-[10px]">
                 {p.editorial}{p.isbn ? ` · ISBN: ${p.isbn}` : ""}
                 {p.precio_costo_ars != null ? ` · ARS $${p.precio_costo_ars.toLocaleString()}` : ""}
