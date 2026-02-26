@@ -26,16 +26,30 @@ export function useCatalog() {
   const fetchProducts = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("catalog_products")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("titulo");
-    if (error) {
-      toast({ title: "Error", description: "Error al cargar catálogo", variant: "destructive" });
+    try {
+      let allData: any[] = [];
+      let from = 0;
+      const PAGE = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from("catalog_products")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("titulo")
+          .range(from, from + PAGE - 1);
+        if (error) {
+          toast({ title: "Error", description: "Error al cargar catálogo", variant: "destructive" });
+          break;
+        }
+        if (!data || data.length === 0) break;
+        allData = allData.concat(data);
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      setProducts(allData as any[]);
+    } finally {
+      setLoading(false);
     }
-    setProducts((data as any[]) || []);
-    setLoading(false);
   }, [user, toast]);
 
   useEffect(() => {
