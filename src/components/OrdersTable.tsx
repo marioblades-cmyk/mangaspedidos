@@ -64,11 +64,11 @@ function TipoBadge({ tipo }: { tipo: string }) {
 
 interface OrdersTableProps {
   orders: Order[];
-  onEdit: (order: Order) => void;
-  onDelete: (id: number) => void;
-  onBulkDelete: (ids: number[]) => void;
-  onBulkEdit: (ids: number[]) => void;
-  onUpdateEstado: (id: number, estado: string) => void;
+  onEdit?: (order: Order) => void;
+  onDelete?: (id: number) => void;
+  onBulkDelete?: (ids: number[]) => void;
+  onBulkEdit?: (ids: number[]) => void;
+  onUpdateEstado?: (id: number, estado: string) => void;
   selectedIds: Set<number>;
   onSelectionChange: (ids: Set<number>) => void;
   decimals: number;
@@ -93,21 +93,25 @@ export function OrdersTable({ orders, onEdit, onDelete, onBulkDelete, onBulkEdit
 
   return (
     <div className="space-y-2">
-      {someSelected && (
+      {someSelected && (onBulkEdit || onBulkDelete) && (
         <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
           <span className="text-sm font-medium">{selectedIds.size} seleccionado(s)</span>
-          <button
-            onClick={() => onBulkEdit(Array.from(selectedIds))}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
-          >
-            <Pencil className="h-3.5 w-3.5" /> Editar seleccionados
-          </button>
-          <button
-            onClick={() => onBulkDelete(Array.from(selectedIds))}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-destructive text-destructive-foreground text-xs font-medium hover:bg-destructive/90 transition-colors"
-          >
-            <Trash2 className="h-3.5 w-3.5" /> Eliminar seleccionados
-          </button>
+          {onBulkEdit && (
+            <button
+              onClick={() => onBulkEdit(Array.from(selectedIds))}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+            >
+              <Pencil className="h-3.5 w-3.5" /> Editar seleccionados
+            </button>
+          )}
+          {onBulkDelete && (
+            <button
+              onClick={() => onBulkDelete(Array.from(selectedIds))}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-destructive text-destructive-foreground text-xs font-medium hover:bg-destructive/90 transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Eliminar seleccionados
+            </button>
+          )}
           <button
             onClick={() => onSelectionChange(new Set())}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors ml-auto"
@@ -158,16 +162,20 @@ export function OrdersTable({ orders, onEdit, onDelete, onBulkDelete, onBulkEdit
                   </td>
                   <td className="p-3 text-muted-foreground font-mono text-xs">{order.numero || "—"}</td>
                   <td className="p-3">
-                    <EstadoBadge estado={order.estado} onAdvance={(next) => onUpdateEstado(order.id, next)} />
+                    <EstadoBadge estado={order.estado} onAdvance={onUpdateEstado ? (next) => onUpdateEstado(order.id, next) : undefined} />
                   </td>
                   <td className="p-3">
                     <div className="flex items-center justify-center gap-1">
-                      <button onClick={() => onEdit(order)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Editar">
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button onClick={() => onDelete(order.id)} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Eliminar">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      {onEdit && (
+                        <button onClick={() => onEdit(order)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Editar">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      {onDelete && (
+                        <button onClick={() => onDelete(order.id)} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Eliminar">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

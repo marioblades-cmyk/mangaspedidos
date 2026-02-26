@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Search, Filter, BookOpen, Users, List, Loader2, Archive, LogOut, Shield } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Search, Filter, BookOpen, Users, List, Loader2, Archive, LogOut, Shield, Eye } from "lucide-react";
 import { Order, getStats } from "@/data/orders";
 import { useOrders } from "@/hooks/useOrders";
 import { useClientPayments } from "@/hooks/useClientPayments";
@@ -13,6 +13,7 @@ import { ClientPaymentDialog } from "@/components/ClientPaymentDialog";
 import { EstadoQuickActions } from "@/components/EstadoQuickActions";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
 import { Switch } from "@/components/ui/switch";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const { user, role, signOut } = useAuth();
@@ -35,14 +36,62 @@ const Index = () => {
   const [decimals, setDecimals] = useState(1);
   const [showEnviados, setShowEnviados] = useState(false);
 
+  // Admin supervision
+  const [allUsers, setAllUsers] = useState<{ user_id: string; email: string; display_name: string | null }[]>([]);
+  const [viewAsUserId, setViewAsUserId] = useState<string | null>(null);
+  const [supervisedOrders, setSupervisedOrders] = useState<Order[] | null>(null);
+  const [supervisedPayments, setSupervisedPayments] = useState<any[] | null>(null);
+
+  // Load all users for admin
+  useEffect(() => {
+    if (role !== "admin") return;
+    (async () => {
+      const { data } = await supabase.from("profiles").select("user_id, email, display_name").order("email");
+      setAllUsers(data || []);
+    })();
+  }, [role]);
+
+  // Load supervised user data
+  useEffect(() => {
+    if (!viewAsUserId || viewAsUserId === user?.id) {
+      setSupervisedOrders(null);
+      setSupervisedPayments(null);
+      return;
+    }
+    (async () => {
+      const [ordersRes, paymentsRes] = await Promise.all([
+        supabase.from("orders").select("*").eq("user_id", viewAsUserId).order("id"),
+        supabase.from("client_payments").select("*").eq("user_id", viewAsUserId).order("created_at", { ascending: false }),
+      ]);
+      setSupervisedOrders((ordersRes.data || []).map((row: any) => ({
+        id: row.id, titulo: row.titulo, tipo: row.tipo,
+        precioVendido: row.precio_vendido, precioRegular: row.precio_regular,
+        pago: row.pago, saldo: row.saldo, numero: row.numero,
+        estado: row.estado, nota: row.nota,
+      })));
+      setSupervisedPayments(paymentsRes.data || []);
+    })();
+  }, [viewAsUserId, user?.id]);
+
+  const isSupervising = viewAsUserId && viewAsUserId !== user?.id;
+  const activeOrders = isSupervising && supervisedOrders ? supervisedOrders : orders;
+  const activePayments = isSupervising && supervisedPayments ? supervisedPayments : clientPayments;
+
+  const supervisedGetClientPaidTotal = (numero: string) => {
+    if (!isSupervising || !supervisedPayments) return getClientPaidTotal(numero);
+    return supervisedPayments.filter((p: any) => p.numero === numero).reduce((s: number, p: any) => s + p.monto, 0);
+  };
+
+  const supervisedUser = allUsers.find(u => u.user_id === viewAsUserId);
+
   const filtered = useMemo(() => {
-    return orders.filter((o) => {
+    return activeOrders.filter((o) => {
       const matchSearch = !search || o.titulo.toLowerCase().includes(search.toLowerCase()) || o.numero.includes(search);
       const matchEstado = !estadoFilter || o.estado === estadoFilter;
       const matchEnviado = showEnviados || o.estado !== "ENVIADO";
       return matchSearch && matchEstado && matchEnviado;
     });
-  }, [orders, search, estadoFilter, showEnviados]);
+  }, [activeOrders, search, estadoFilter, showEnviados]);
 
   const stats = useMemo(() => getStats(filtered), [filtered]);
 
@@ -58,7 +107,7 @@ const Index = () => {
   };
 
   const handleUpdateEstado = (id: number, estado: string) => {
-    const order = orders.find(o => o.id === id);
+    const order = activeOrders.find(o => o.id === id);
     if (order) setEstadoOrder(order);
   };
 
@@ -79,8 +128,8 @@ const Index = () => {
   };
 
   const selectedOrders = useMemo(() => {
-    return orders.filter(o => bulkEditIds.includes(o.id));
-  }, [orders, bulkEditIds]);
+    return activeOrders.filter(o => bulkEditIds.includes(o.id));
+  }, [activeOrders, bulkEditIds]);
 
   if (loading) {
     return (
@@ -92,6 +141,15 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Admin supervision banner */}
+      {isSupervising && (
+        <div className="bg-accent/60 border-b border-accent text-accent-foreground px-4 py-2 flex items-center justify-center gap-2 text-sm font-medium">
+          <Eye className="h-4 w-4" />
+          Supervisando datos de: <strong>{supervisedUser?.email || viewAsUserId}</strong>
+          <button onClick={() => setViewAsUserId(null)} className="ml-3 underline text-xs hover:text-foreground">Volver a mis datos</button>
+        </div>
+      )}
+
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -107,6 +165,23 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {/* Admin user selector */}
+            {role === "admin" && (
+              <select
+                value={viewAsUserId || user?.id || ""}
+                onChange={e => setViewAsUserId(e.target.value === user?.id ? null : e.target.value)}
+                className="text-xs bg-muted border border-border rounded-md px-2 py-1.5 text-foreground cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30 max-w-[180px]"
+                title="Supervisar usuario"
+              >
+                <option value={user?.id || ""}>👤 Mis datos</option>
+                {allUsers.filter(u => u.user_id !== user?.id).map(u => (
+                  <option key={u.user_id} value={u.user_id}>
+                    {u.email || u.display_name || u.user_id.slice(0, 8)}
+                  </option>
+                ))}
+              </select>
+            )}
+
             <div className="flex items-center bg-muted rounded-lg p-0.5">
               <button onClick={() => setView("table")} className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${view === "table" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
                 <List className="h-3.5 w-3.5" /> Pedidos
@@ -117,7 +192,7 @@ const Index = () => {
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-md font-medium">
-                {orders.length} pedidos
+                {activeOrders.length} pedidos
               </span>
               <select
                 value={decimals}
@@ -130,7 +205,7 @@ const Index = () => {
                 <option value={3}>.000</option>
               </select>
             </div>
-            <AddOrderDialog onAdd={addOrders} estados={estados} />
+            {!isSupervising && <AddOrderDialog onAdd={addOrders} estados={estados} />}
             <button
               onClick={signOut}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20 transition-colors"
@@ -179,11 +254,11 @@ const Index = () => {
         {view === "table" ? (
           <OrdersTable
             orders={filtered}
-            onEdit={setEditOrder}
-            onDelete={handleDelete}
-            onBulkDelete={handleBulkDelete}
-            onBulkEdit={(ids) => setBulkEditIds(ids)}
-            onUpdateEstado={handleUpdateEstado}
+            onEdit={!isSupervising ? setEditOrder : undefined}
+            onDelete={!isSupervising ? handleDelete : undefined}
+            onBulkDelete={!isSupervising ? handleBulkDelete : undefined}
+            onBulkEdit={!isSupervising ? (ids) => setBulkEditIds(ids) : undefined}
+            onUpdateEstado={!isSupervising ? handleUpdateEstado : undefined}
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
             decimals={decimals}
@@ -191,22 +266,27 @@ const Index = () => {
         ) : (
           <ClientsView
             orders={filtered}
-            onPayClient={setPayClient}
+            onPayClient={!isSupervising ? setPayClient : () => {}}
             decimals={decimals}
-            onUpdatePayment={applyPayment}
-            clientPayments={clientPayments}
-            getClientPaidTotal={getClientPaidTotal}
-            onDeleteGeneralPayment={deletePayment}
-            onUpdateEstado={updateEstado}
+            onUpdatePayment={!isSupervising ? applyPayment : () => {}}
+            clientPayments={activePayments}
+            getClientPaidTotal={supervisedGetClientPaidTotal}
+            onDeleteGeneralPayment={!isSupervising ? deletePayment : () => {}}
+            onUpdateEstado={!isSupervising ? updateEstado : () => {}}
             showEnviados={showEnviados}
+            readOnly={!!isSupervising}
           />
         )}
       </main>
 
-      <EditOrderDialog order={editOrder} open={!!editOrder} onClose={() => setEditOrder(null)} onSave={(o) => { updateOrder(o); setEditOrder(null); }} estados={estados} decimals={decimals} />
-      <ClientPaymentDialog orders={orders} cliente={payClient || ""} open={!!payClient} onClose={() => setPayClient(null)} onApplyPayment={applyPayment} onGeneralPayment={addPayment} decimals={decimals} generalPaidTotal={getClientPaidTotal(payClient || "")} />
-      <EstadoQuickActions order={estadoOrder} open={!!estadoOrder} onClose={() => setEstadoOrder(null)} onUpdateEstado={handleEstadoConfirm} allEstados={estados} />
-      <BulkEditDialog open={bulkEditIds.length > 0} onClose={() => setBulkEditIds([])} orders={selectedOrders} onApply={handleBulkEdit} onSmartEstado={handleSmartBulkEstado} estados={estados} />
+      {!isSupervising && (
+        <>
+          <EditOrderDialog order={editOrder} open={!!editOrder} onClose={() => setEditOrder(null)} onSave={(o) => { updateOrder(o); setEditOrder(null); }} estados={estados} decimals={decimals} />
+          <ClientPaymentDialog orders={orders} cliente={payClient || ""} open={!!payClient} onClose={() => setPayClient(null)} onApplyPayment={applyPayment} onGeneralPayment={addPayment} decimals={decimals} generalPaidTotal={getClientPaidTotal(payClient || "")} />
+          <EstadoQuickActions order={estadoOrder} open={!!estadoOrder} onClose={() => setEstadoOrder(null)} onUpdateEstado={handleEstadoConfirm} allEstados={estados} />
+          <BulkEditDialog open={bulkEditIds.length > 0} onClose={() => setBulkEditIds([])} orders={selectedOrders} onApply={handleBulkEdit} onSmartEstado={handleSmartBulkEstado} estados={estados} />
+        </>
+      )}
     </div>
   );
 };
