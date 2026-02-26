@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Order, ordersData as seedData, getStats, getUniqueEstados } from "@/data/orders";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
-// Map DB row (snake_case) → frontend Order (camelCase)
 function rowToOrder(row: any): Order {
   return {
     id: row.id,
@@ -19,8 +19,7 @@ function rowToOrder(row: any): Order {
   };
 }
 
-// Map frontend Order → DB insert (snake_case, no id)
-function orderToInsert(o: Omit<Order, "id">) {
+function orderToInsert(o: Omit<Order, "id">, userId: string) {
   return {
     titulo: o.titulo,
     tipo: o.tipo,
@@ -31,6 +30,7 @@ function orderToInsert(o: Omit<Order, "id">) {
     numero: o.numero,
     estado: o.estado,
     nota: o.nota,
+    user_id: userId,
   };
 }
 
@@ -52,12 +52,12 @@ export function useOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const showError = useCallback((msg: string) => {
     toast({ title: "Error", description: msg, variant: "destructive" });
   }, [toast]);
 
-  // Fetch all orders
   const fetchOrders = useCallback(async () => {
     const { data, error } = await supabase.from("orders").select("*").order("id");
     if (error) {
@@ -68,33 +68,23 @@ export function useOrders() {
     return (data || []).map(rowToOrder);
   }, [showError]);
 
-  // Initial load + seed if empty
   useEffect(() => {
+    if (!user) return;
     (async () => {
       setLoading(true);
-      let fetched = await fetchOrders();
-      if (fetched.length === 0) {
-        // Seed from local data
-        const inserts = seedData.map(({ id, ...rest }) => orderToInsert(rest));
-        const { error } = await supabase.from("orders").insert(inserts);
-        if (error) {
-          console.error("Seed error:", error);
-          showError("Error al sembrar datos iniciales");
-        } else {
-          fetched = await fetchOrders();
-        }
-      }
+      const fetched = await fetchOrders();
       setOrders(fetched);
       setLoading(false);
     })();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addOrders = useCallback(async (newOrders: Omit<Order, "id">[]) => {
-    const inserts = newOrders.map(orderToInsert);
+    if (!user) return;
+    const inserts = newOrders.map(o => orderToInsert(o, user.id));
     const { data, error } = await supabase.from("orders").insert(inserts).select();
     if (error) { showError("Error al agregar pedidos"); return; }
     setOrders(prev => [...prev, ...(data || []).map(rowToOrder)]);
-  }, [showError]);
+  }, [showError, user]);
 
   const updateOrder = useCallback(async (updated: Order) => {
     const { error } = await supabase.from("orders").update(orderToUpdate(updated)).eq("id", updated.id);
@@ -121,7 +111,6 @@ export function useOrders() {
   }, [showError]);
 
   const applyPayment = useCallback(async (updates: { id: number; pago: number; saldo: number }[]) => {
-    // Update each in parallel
     const results = await Promise.all(
       updates.map(u => supabase.from("orders").update({ pago: u.pago, saldo: u.saldo }).eq("id", u.id))
     );
