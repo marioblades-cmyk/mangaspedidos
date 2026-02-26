@@ -26,6 +26,7 @@ export function useClientPayments() {
       const { data, error } = await supabase
         .from("client_payments")
         .select("*")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error) { showError("Error al cargar pagos generales"); return; }
       setPayments((data || []) as ClientPayment[]);
