@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface ClientPayment {
   id: number;
@@ -13,12 +14,14 @@ export interface ClientPayment {
 export function useClientPayments() {
   const [payments, setPayments] = useState<ClientPayment[]>([]);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const showError = useCallback((msg: string) => {
     toast({ title: "Error", description: msg, variant: "destructive" });
   }, [toast]);
 
   useEffect(() => {
+    if (!user) return;
     (async () => {
       const { data, error } = await supabase
         .from("client_payments")
@@ -27,16 +30,17 @@ export function useClientPayments() {
       if (error) { showError("Error al cargar pagos generales"); return; }
       setPayments((data || []) as ClientPayment[]);
     })();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addPayment = useCallback(async (numero: string, monto: number, nota?: string) => {
+    if (!user) return;
     const { data, error } = await supabase
       .from("client_payments")
-      .insert({ numero, monto, nota: nota || "" })
+      .insert({ numero, monto, nota: nota || "", user_id: user.id })
       .select();
     if (error) { showError("Error al registrar pago general"); return; }
     setPayments(prev => [...(data as ClientPayment[]), ...prev]);
-  }, [showError]);
+  }, [showError, user]);
 
   const deletePayment = useCallback(async (id: number) => {
     const { error } = await supabase.from("client_payments").delete().eq("id", id);

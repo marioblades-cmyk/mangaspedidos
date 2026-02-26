@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
-import { Search, Filter, BookOpen, Users, List, Loader2, Archive } from "lucide-react";
+import { Search, Filter, BookOpen, Users, List, Loader2, Archive, LogOut, Shield } from "lucide-react";
 import { Order, getStats } from "@/data/orders";
 import { useOrders } from "@/hooks/useOrders";
 import { useClientPayments } from "@/hooks/useClientPayments";
+import { useAuth } from "@/hooks/useAuth";
 import { StatsRow } from "@/components/StatsRow";
 import { OrdersTable } from "@/components/OrdersTable";
 import { AddOrderDialog } from "@/components/AddOrderDialog";
@@ -14,6 +15,7 @@ import { BulkEditDialog } from "@/components/BulkEditDialog";
 import { Switch } from "@/components/ui/switch";
 
 const Index = () => {
+  const { user, role, signOut } = useAuth();
   const {
     orders, loading, estados,
     addOrders, updateOrder, deleteOrder, deleteMany,
@@ -98,7 +100,10 @@ const Index = () => {
             </div>
             <div>
               <h1 className="text-xl font-display font-bold tracking-tight">MangaTracker</h1>
-              <span className="text-xs text-muted-foreground">Tienda de Mangas & Comics</span>
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                {user?.email}
+                {role === "admin" && <Shield className="h-3 w-3 text-primary" />}
+              </span>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -126,6 +131,13 @@ const Index = () => {
               </select>
             </div>
             <AddOrderDialog onAdd={addOrders} estados={estados} />
+            <button
+              onClick={signOut}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20 transition-colors"
+              title="Cerrar sesión"
+            >
+              <LogOut className="h-3.5 w-3.5" /> Salir
+            </button>
           </div>
         </div>
       </header>
