@@ -141,34 +141,23 @@ serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
 
-    // Process ALL sheets - map sheet names to editorials
-    const sheetEditorialMap: Record<string, string> = {};
-    for (const name of workbook.SheetNames) {
-      const lower = name.toLowerCase();
-      if (lower.includes("ivrea")) sheetEditorialMap[name] = "Ivrea";
-      else if (lower.includes("panini")) sheetEditorialMap[name] = "Panini";
-      else if (lower.includes("norma")) sheetEditorialMap[name] = "Norma";
-      else if (lower.includes("planeta")) sheetEditorialMap[name] = "Planeta";
-      else if (lower.includes("ovni")) sheetEditorialMap[name] = "Ovni Press";
-      else if (lower.includes("distrito")) sheetEditorialMap[name] = "Distrito Manga";
-      else sheetEditorialMap[name] = name; // Use sheet name as editorial fallback
+    // Process ONLY Ivrea sheet
+    const sheetName = workbook.SheetNames.find(
+      (n: string) => n.toLowerCase().includes("ivrea")
+    ) || workbook.SheetNames[0];
+
+    const sheet = workbook.Sheets[sheetName];
+    if (!sheet) {
+      return new Response(JSON.stringify({ error: "No se encontró la pestaña Ivrea" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Parse all sheets
-    let allProducts: ParsedProduct[] = [];
-    const allErrors: string[] = [];
-    const sheetsProcessed: string[] = [];
+    const { products: allProducts, errors: allErrors } = parseSheet(sheet, "Ivrea");
+    const sheetsProcessed = [sheetName];
 
-    for (const [sheetName, editorial] of Object.entries(sheetEditorialMap)) {
-      const sheet = workbook.Sheets[sheetName];
-      if (!sheet) continue;
-      const { products, errors } = parseSheet(sheet, editorial);
-      allProducts = allProducts.concat(products);
-      allErrors.push(...errors.map(e => `[${sheetName}] ${e}`));
-      sheetsProcessed.push(sheetName);
-      // Memory: release ref
-      workbook.Sheets[sheetName] = undefined as any;
-    }
+    // Free memory
+    workbook.Sheets[sheetName] = undefined as any;
 
     if (allProducts.length === 0) {
       return new Response(JSON.stringify({ error: "No se encontraron productos en el Excel", errors: allErrors }), {

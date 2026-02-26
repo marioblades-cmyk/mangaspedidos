@@ -20,10 +20,8 @@ function SortIcon({ field, active, dir }: { field: string; active: string | null
 }
 
 export function CatalogView() {
-  const { products, loading, uploading, uploadExcel, deleteProduct, deleteProducts } = useCatalog();
+  const { products, loading, uploading, uploadExcel, deleteProduct, deleteProducts, deleteAllProducts } = useCatalog();
   const [search, setSearch] = useState("");
-  const [filterEstado, setFilterEstado] = useState("");
-  const [filterPub, setFilterPub] = useState("");
   const [summary, setSummary] = useState<any>(null);
   const [sortField, setSortField] = useState<SortField>("titulo");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
@@ -62,9 +60,7 @@ export function CatalogView() {
         p.titulo.toLowerCase().includes(search.toLowerCase()) ||
         p.tomo.toLowerCase().includes(search.toLowerCase()) ||
         p.isbn.toLowerCase().includes(search.toLowerCase());
-      const matchEstado = !filterEstado || p.estado === filterEstado;
-      const matchPub = !filterPub || p.estado_publicacion === filterPub;
-      return matchSearch && matchEstado && matchPub;
+      return matchSearch;
     });
     if (sortField) {
       result.sort((a, b) => {
@@ -82,7 +78,7 @@ export function CatalogView() {
       });
     }
     return result;
-  }, [products, search, filterEstado, filterPub, sortField, sortDir]);
+  }, [products, search, sortField, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePageNum = Math.min(page, totalPages);
@@ -113,6 +109,15 @@ export function CatalogView() {
     setSelectedIds(new Set());
   };
 
+  const [deletingAll, setDeletingAll] = useState(false);
+  const handleDeleteAll = async () => {
+    if (!confirm(`¿Eliminar TODOS los ${products.length} productos del catálogo? Esta acción no se puede deshacer.`)) return;
+    setDeletingAll(true);
+    await deleteAllProducts();
+    setDeletingAll(false);
+    setSelectedIds(new Set());
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -135,6 +140,12 @@ export function CatalogView() {
           Subir Excel
         </Button>
         <span className="text-xs text-muted-foreground">{products.length} productos en catálogo</span>
+        {products.length > 0 && (
+          <Button variant="destructive" size="sm" onClick={handleDeleteAll} disabled={deletingAll} className="gap-1 ml-auto">
+            {deletingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+            Vaciar catálogo
+          </Button>
+        )}
       </div>
 
       {/* Upload progress */}
@@ -196,7 +207,7 @@ export function CatalogView() {
         </div>
       )}
 
-      {/* Filters */}
+      {/* Search */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -208,25 +219,6 @@ export function CatalogView() {
             className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
           />
         </div>
-        <select
-          value={filterEstado}
-          onChange={e => { setFilterEstado(e.target.value); setPage(1); }}
-          className="px-3 py-2.5 rounded-lg bg-card border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 appearance-none cursor-pointer"
-        >
-          <option value="">Todas las presencias</option>
-          <option value="Disponible">Disponible</option>
-          <option value="No figura en el catálogo actual">No figura</option>
-        </select>
-        <select
-          value={filterPub}
-          onChange={e => { setFilterPub(e.target.value); setPage(1); }}
-          className="px-3 py-2.5 rounded-lg bg-card border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 appearance-none cursor-pointer"
-        >
-          <option value="">Todos los estados</option>
-          <option value="En curso">En curso</option>
-          <option value="Completo">Completo</option>
-          <option value="Tomo Único">Tomo Único</option>
-        </select>
       </div>
 
       {/* Bulk actions */}

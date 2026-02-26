@@ -98,5 +98,16 @@ export function useCatalog() {
     toast({ title: "Eliminados", description: `${ids.length} producto(s) eliminados` });
   }, [toast]);
 
-  return { products, loading, uploading, uploadExcel, deleteProduct, deleteProducts, refetch: fetchProducts };
+  const deleteAllProducts = useCallback(async () => {
+    if (!user) return;
+    const { error } = await supabase.from("catalog_products").delete().eq("user_id", user.id);
+    if (error) {
+      toast({ title: "Error", description: "No se pudo vaciar el catálogo", variant: "destructive" });
+      return;
+    }
+    setProducts([]);
+    toast({ title: "Catálogo vaciado", description: "Todos los productos fueron eliminados" });
+  }, [user, toast]);
+
+  return { products, loading, uploading, uploadExcel, deleteProduct, deleteProducts, deleteAllProducts, refetch: fetchProducts };
 }
