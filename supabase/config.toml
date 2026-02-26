@@ -1,1 +1,4 @@
 project_id = "jqhsjnjcnacvwgzjwiqy"
+
+[functions.process-catalog-excel]
+verify_jwt = false
