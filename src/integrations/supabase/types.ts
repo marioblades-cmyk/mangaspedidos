@@ -14,51 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      catalog_products: {
-        Row: {
-          created_at: string
-          editorial: string
-          estado: string
-          id: number
-          identificador_unico: string
-          isbn: string
-          last_seen_at: string
-          precio_costo_ars: number | null
-          titulo: string
-          tomo: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          editorial?: string
-          estado?: string
-          id?: never
-          identificador_unico?: string
-          isbn?: string
-          last_seen_at?: string
-          precio_costo_ars?: number | null
-          titulo?: string
-          tomo?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          editorial?: string
-          estado?: string
-          id?: never
-          identificador_unico?: string
-          isbn?: string
-          last_seen_at?: string
-          precio_costo_ars?: number | null
-          titulo?: string
-          tomo?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       client_payments: {
         Row: {
           created_at: string
