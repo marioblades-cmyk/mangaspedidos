@@ -79,5 +79,24 @@ export function useCatalog() {
     }
   }, [user, toast, fetchProducts]);
 
-  return { products, loading, uploading, uploadExcel, refetch: fetchProducts };
+  const deleteProduct = useCallback(async (id: number) => {
+    const { error } = await supabase.from("catalog_products").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Error", description: "No se pudo eliminar el producto", variant: "destructive" });
+      return;
+    }
+    setProducts(prev => prev.filter(p => p.id !== id));
+  }, [toast]);
+
+  const deleteProducts = useCallback(async (ids: number[]) => {
+    const { error } = await supabase.from("catalog_products").delete().in("id", ids);
+    if (error) {
+      toast({ title: "Error", description: "No se pudieron eliminar los productos", variant: "destructive" });
+      return;
+    }
+    setProducts(prev => prev.filter(p => !ids.includes(p.id)));
+    toast({ title: "Eliminados", description: `${ids.length} producto(s) eliminados` });
+  }, [toast]);
+
+  return { products, loading, uploading, uploadExcel, deleteProduct, deleteProducts, refetch: fetchProducts };
 }
