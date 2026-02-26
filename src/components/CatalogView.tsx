@@ -16,7 +16,8 @@ export function CatalogView() {
     return products.filter(p => {
       const matchSearch = !search ||
         p.titulo.toLowerCase().includes(search.toLowerCase()) ||
-        p.isbn.toLowerCase().includes(search.toLowerCase());
+        p.isbn.toLowerCase().includes(search.toLowerCase()) ||
+        p.tomo.toLowerCase().includes(search.toLowerCase());
       const matchStatus = !statusFilter || p.estado === statusFilter;
       return matchSearch && matchStatus;
     });
@@ -86,7 +87,7 @@ export function CatalogView() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Buscar por nombre o ISBN..."
+            placeholder="Buscar por nombre, tomo o ISBN..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
@@ -103,11 +104,7 @@ export function CatalogView() {
         </select>
         <div>
           <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleUpload} className="hidden" id="catalog-upload" />
-          <Button
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            className="gap-2"
-          >
+          <Button onClick={() => fileRef.current?.click()} disabled={uploading} className="gap-2">
             {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             {uploading ? "Procesando..." : "Subir Excel"}
           </Button>
@@ -137,7 +134,8 @@ export function CatalogView() {
             <TableHeader>
               <TableRow className="bg-muted/60">
                 <TableHead className="text-xs">Título</TableHead>
-                <TableHead className="text-xs">ISBN</TableHead>
+                <TableHead className="text-xs">Tomo</TableHead>
+                <TableHead className="text-xs">ISBN/EAN</TableHead>
                 <TableHead className="text-xs">Editorial</TableHead>
                 <TableHead className="text-xs text-right">Precio ARS</TableHead>
                 <TableHead className="text-xs">Estado</TableHead>
@@ -147,6 +145,7 @@ export function CatalogView() {
               {filtered.map(p => (
                 <TableRow key={p.id} className={p.estado === "Fuera de Catálogo" ? "opacity-60" : ""}>
                   <TableCell className="text-xs font-medium">{p.titulo}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{p.tomo || "—"}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{p.isbn || "—"}</TableCell>
                   <TableCell className="text-xs">{p.editorial}</TableCell>
                   <TableCell className="text-xs text-right tabular-nums">

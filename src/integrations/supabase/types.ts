@@ -25,6 +25,7 @@ export type Database = {
           last_seen_at: string
           precio_costo_ars: number | null
           titulo: string
+          tomo: string
           updated_at: string
           user_id: string
         }
@@ -38,6 +39,7 @@ export type Database = {
           last_seen_at?: string
           precio_costo_ars?: number | null
           titulo?: string
+          tomo?: string
           updated_at?: string
           user_id: string
         }
@@ -51,6 +53,7 @@ export type Database = {
           last_seen_at?: string
           precio_costo_ars?: number | null
           titulo?: string
+          tomo?: string
           updated_at?: string
           user_id?: string
         }
