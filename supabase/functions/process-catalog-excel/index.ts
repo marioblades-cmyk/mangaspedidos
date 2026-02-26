@@ -152,11 +152,25 @@ serve(async (req) => {
     }
     console.log("Existing products:", existingMap.size);
 
-    const now = new Date().toISOString();
+  const now = new Date().toISOString();
     const newProductIds = new Set<string>();
     const toInsert: any[] = [];
     let updated = 0, isbnUpdated = 0;
     const updateErrors: string[] = [];
+
+    // Detect duplicate ISBNs and reassign identificador_unico
+    const isbnCount = new Map<string, number>();
+    for (const p of products) {
+      if (p.identificador_unico === p.isbn) {
+        isbnCount.set(p.isbn, (isbnCount.get(p.isbn) || 0) + 1);
+      }
+    }
+    for (const p of products) {
+      if (p.identificador_unico === p.isbn && (isbnCount.get(p.isbn) || 0) > 1) {
+        p.identificador_unico = `${p.titulo}|${p.tomo}`;
+      }
+    }
+    console.log("Duplicate ISBNs reassigned:", [...isbnCount.entries()].filter(([,c]) => c > 1).length);
 
     // Separate new vs existing
     for (const p of products) {
