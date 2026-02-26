@@ -1,11 +1,22 @@
 import { useState, useMemo, useRef } from "react";
-import { Upload, Search, Loader2, BookOpen, CheckCircle, AlertTriangle, XCircle, Trash2, ArrowUpDown } from "lucide-react";
+import { Upload, Search, Loader2, CheckCircle, XCircle, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCatalog } from "@/hooks/useCatalog";
 
-type SortOption = "alpha-asc" | "alpha-desc" | "price-asc" | "price-desc";
+type SortField = "titulo" | "tomo" | "precio" | null;
+type SortDir = "asc" | "desc";
 
 const PAGE_SIZE = 50;
+
+function SortIcon({ field, active, dir }: { field: string; active: string | null; dir: SortDir }) {
+  const isActive = field === active;
+  return (
+    <span className="inline-flex flex-col ml-1 -space-y-1">
+      <ChevronUp className={`h-3 w-3 ${isActive && dir === "asc" ? "text-primary" : "text-muted-foreground/40"}`} />
+      <ChevronDown className={`h-3 w-3 ${isActive && dir === "desc" ? "text-primary" : "text-muted-foreground/40"}`} />
+    </span>
+  );
+}
 
 export function CatalogView() {
   const { products, loading, uploading, uploadExcel, deleteProduct, deleteProducts } = useCatalog();
@@ -13,10 +24,20 @@ export function CatalogView() {
   const [filterEstado, setFilterEstado] = useState("");
   const [filterPub, setFilterPub] = useState("");
   const [summary, setSummary] = useState<any>(null);
-  const [sort, setSort] = useState<SortOption>("alpha-asc");
+  const [sortField, setSortField] = useState<SortField>("titulo");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
+  };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -36,16 +57,23 @@ export function CatalogView() {
       const matchPub = !filterPub || p.estado_publicacion === filterPub;
       return matchSearch && matchEstado && matchPub;
     });
-    result.sort((a, b) => {
-      switch (sort) {
-        case "alpha-asc": return a.titulo.localeCompare(b.titulo);
-        case "alpha-desc": return b.titulo.localeCompare(a.titulo);
-        case "price-asc": return (a.precio_costo_ars ?? 0) - (b.precio_costo_ars ?? 0);
-        case "price-desc": return (b.precio_costo_ars ?? 0) - (a.precio_costo_ars ?? 0);
-      }
-    });
+    if (sortField) {
+      result.sort((a, b) => {
+        let cmp = 0;
+        if (sortField === "titulo") {
+          cmp = a.titulo.localeCompare(b.titulo);
+        } else if (sortField === "tomo") {
+          const na = parseInt(a.tomo) || 0;
+          const nb = parseInt(b.tomo) || 0;
+          cmp = na - nb;
+        } else if (sortField === "precio") {
+          cmp = (a.precio_costo_ars ?? 0) - (b.precio_costo_ars ?? 0);
+        }
+        return sortDir === "desc" ? -cmp : cmp;
+      });
+    }
     return result;
-  }, [products, search, filterEstado, filterPub, sort]);
+  }, [products, search, filterEstado, filterPub, sortField, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePageNum = Math.min(page, totalPages);
@@ -163,16 +191,6 @@ export function CatalogView() {
           <option value="Completo">Completo</option>
           <option value="Tomo Único">Tomo Único</option>
         </select>
-        <select
-          value={sort}
-          onChange={e => setSort(e.target.value as SortOption)}
-          className="px-3 py-2.5 rounded-lg bg-card border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 appearance-none cursor-pointer"
-        >
-          <option value="alpha-asc">A → Z</option>
-          <option value="alpha-desc">Z → A</option>
-          <option value="price-desc">Precio: Mayor a Menor</option>
-          <option value="price-asc">Precio: Menor a Mayor</option>
-        </select>
       </div>
 
       {/* Bulk actions */}
@@ -195,12 +213,18 @@ export function CatalogView() {
                 <th className="px-3 py-2 text-center w-10">
                   <input type="checkbox" checked={paged.length > 0 && paged.every(p => selectedIds.has(p.id))} onChange={toggleSelectAll} className="rounded border-border" />
                 </th>
-                <th className="px-4 py-2 text-left text-xs font-semibold text-muted-foreground">Título</th>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Tomo</th>
+                <th className="px-4 py-2 text-left text-xs font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => toggleSort("titulo")}>
+                  <span className="inline-flex items-center">Título <SortIcon field="titulo" active={sortField} dir={sortDir} /></span>
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => toggleSort("tomo")}>
+                  <span className="inline-flex items-center">Tomo <SortIcon field="tomo" active={sortField} dir={sortDir} /></span>
+                </th>
                 <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Editorial</th>
                 <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">ISBN</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Precio ARS</th>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Publicación</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => toggleSort("precio")}>
+                  <span className="inline-flex items-center justify-end">Precio ARS <SortIcon field="precio" active={sortField} dir={sortDir} /></span>
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Estado de Serie</th>
                 <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Presencia</th>
                 <th className="px-3 py-2 text-center text-xs font-semibold text-muted-foreground w-10"></th>
               </tr>
