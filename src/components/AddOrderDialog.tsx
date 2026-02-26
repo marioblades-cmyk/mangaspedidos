@@ -1,9 +1,8 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, BookCopy } from "lucide-react";
 import { Order } from "@/data/orders";
-import { supabase } from "@/integrations/supabase/client";
 
 interface OrderItem {
   titulo: string;
@@ -38,39 +37,6 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
   const [colPrecioRegular, setColPrecioRegular] = useState("");
   const [colPago, setColPago] = useState("");
   const [colNota, setColNota] = useState("");
-  // Catalog suggestions
-  const [catalogProducts, setCatalogProducts] = useState<{ titulo: string; tomo: string }[]>([]);
-  const [activeSuggest, setActiveSuggest] = useState<number | null>(null);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (!open) return;
-    (async () => {
-      const { data } = await supabase.from("catalog_products").select("titulo, tomo").eq("estado", "Disponible");
-      setCatalogProducts((data || []).map((d: any) => ({ titulo: d.titulo, tomo: d.tomo })));
-    })();
-  }, [open]);
-
-  const getSuggestions = (query: string) => {
-    if (!query || query.length < 2) return [];
-    const q = query.toLowerCase();
-    const matches = catalogProducts
-      .map(p => p.tomo ? `${p.titulo} ${p.tomo}` : p.titulo)
-      .filter(name => name.toLowerCase().includes(q));
-    return [...new Set(matches)].slice(0, 8);
-  };
-
-  const handleTitleChange = (idx: number, value: string) => {
-    updateItem(idx, "titulo", value);
-    setActiveSuggest(idx);
-    setSuggestions(getSuggestions(value));
-  };
-
-  const selectSuggestion = (idx: number, value: string) => {
-    updateItem(idx, "titulo", value);
-    setActiveSuggest(null);
-    setSuggestions([]);
-  };
 
   const updateItem = (idx: number, field: keyof OrderItem, value: string) => {
     setItems(prev => prev.map((it, i) => i === idx ? { ...it, [field]: value } : it));
@@ -278,17 +244,8 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
                       {items.map((item, idx) => (
                         <tr key={idx} className="border-b border-border/50 last:border-0 hover:bg-muted/30">
                           <td className="px-2 py-1.5 text-muted-foreground">{idx + 1}</td>
-                          <td className="px-1 py-1 relative">
-                            <input value={item.titulo} onChange={e => handleTitleChange(idx, e.target.value)} onFocus={() => { setActiveSuggest(idx); setSuggestions(getSuggestions(item.titulo)); }} onBlur={() => setTimeout(() => setActiveSuggest(null), 200)} placeholder="Título" className="w-full min-w-[120px] px-1.5 py-1 rounded border border-border bg-card text-xs focus:outline-none focus:ring-1 focus:ring-primary/30" />
-                            {activeSuggest === idx && suggestions.length > 0 && (
-                              <div className="absolute z-50 top-full left-0 mt-0.5 w-64 max-h-40 overflow-y-auto bg-popover border border-border rounded-md shadow-lg">
-                                {suggestions.map((s, si) => (
-                                  <button key={si} onMouseDown={() => selectSuggestion(idx, s)} className="w-full text-left px-2 py-1.5 text-xs hover:bg-muted/60 truncate">
-                                    {s}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
+                          <td className="px-1 py-1">
+                            <input value={item.titulo} onChange={e => updateItem(idx, "titulo", e.target.value)} placeholder="Título" className="w-full min-w-[120px] px-1.5 py-1 rounded border border-border bg-card text-xs focus:outline-none focus:ring-1 focus:ring-primary/30" />
                           </td>
                           <td className="px-1 py-1">
                             <select value={item.tipo} onChange={e => updateItem(idx, "tipo", e.target.value)} className="w-full min-w-[80px] px-1 py-1 rounded border border-border bg-card text-xs focus:outline-none focus:ring-1 focus:ring-primary/30">

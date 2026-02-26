@@ -59,15 +59,14 @@ export function useOrders() {
   }, [toast]);
 
   const fetchOrders = useCallback(async () => {
-    if (!user) return [];
-    const { data, error } = await supabase.from("orders").select("*").eq("user_id", user.id).order("id");
+    const { data, error } = await supabase.from("orders").select("*").order("id");
     if (error) {
       showError("Error al cargar pedidos");
       console.error(error);
       return [];
     }
     return (data || []).map(rowToOrder);
-  }, [showError, user]);
+  }, [showError]);
 
   useEffect(() => {
     if (!user) return;
