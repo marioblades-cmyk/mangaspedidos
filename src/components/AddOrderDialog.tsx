@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, BookCopy } from "lucide-react";
 import { Order } from "@/data/orders";
+import { CatalogSearch } from "@/components/CatalogSearch";
 
 interface OrderItem {
   titulo: string;
@@ -245,7 +246,13 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
                         <tr key={idx} className="border-b border-border/50 last:border-0 hover:bg-muted/30">
                           <td className="px-2 py-1.5 text-muted-foreground">{idx + 1}</td>
                           <td className="px-1 py-1">
-                            <input value={item.titulo} onChange={e => updateItem(idx, "titulo", e.target.value)} placeholder="Título" className="w-full min-w-[120px] px-1.5 py-1 rounded border border-border bg-card text-xs focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                            <CatalogSearch
+                              value={item.titulo}
+                              onChange={val => updateItem(idx, "titulo", val)}
+                              onSelect={titulo => updateItem(idx, "titulo", titulo)}
+                              placeholder="Título"
+                              className="w-full min-w-[120px] px-1.5 py-1 rounded border border-border bg-card text-xs focus:outline-none focus:ring-1 focus:ring-primary/30"
+                            />
                           </td>
                           <td className="px-1 py-1">
                             <select value={item.tipo} onChange={e => updateItem(idx, "tipo", e.target.value)} className="w-full min-w-[80px] px-1 py-1 rounded border border-border bg-card text-xs focus:outline-none focus:ring-1 focus:ring-primary/30">
