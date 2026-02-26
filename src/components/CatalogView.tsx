@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef } from "react";
-import { Upload, Search, Loader2, CheckCircle, XCircle, Trash2, ChevronUp, ChevronDown } from "lucide-react";
+import { Upload, Search, Loader2, CheckCircle, XCircle, Trash2, ChevronUp, ChevronDown, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { useCatalog } from "@/hooks/useCatalog";
 
 type SortField = "titulo" | "tomo" | "precio" | null;
@@ -39,11 +40,19 @@ export function CatalogView() {
     }
   };
 
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setUploadProgress("Enviando archivo al servidor...");
     const result = await uploadExcel(file);
-    if (result) setSummary(result);
+    if (result) {
+      setSummary(result);
+      setUploadProgress(null);
+    } else {
+      setUploadProgress(null);
+    }
     if (fileRef.current) fileRef.current.value = "";
   };
 
@@ -128,11 +137,26 @@ export function CatalogView() {
         <span className="text-xs text-muted-foreground">{products.length} productos en catálogo</span>
       </div>
 
+      {/* Upload progress */}
+      {uploading && uploadProgress && (
+        <div className="bg-card border border-border rounded-lg p-4 space-y-2">
+          <div className="flex items-center gap-2 text-sm">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <span className="text-foreground font-medium">{uploadProgress}</span>
+          </div>
+          <Progress value={undefined} className="h-2" />
+          <p className="text-xs text-muted-foreground">Procesando por lotes de 100 filas. No cierres esta pestaña.</p>
+        </div>
+      )}
+
       {summary && (
         <div className="bg-card border border-border rounded-lg p-4 space-y-2">
           <p className="text-sm font-semibold flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-success" /> Resumen de importación (Pestaña: {summary.sheet})
+            <CheckCircle className="h-4 w-4 text-success" /> Resumen de importación
           </p>
+          {summary.sheets && (
+            <p className="text-xs text-muted-foreground">Pestañas procesadas: {summary.sheets.join(", ")}</p>
+          )}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div className="bg-success/10 rounded-md p-2 text-center">
               <p className="text-success font-bold text-lg">{summary.inserted}</p>
@@ -155,6 +179,18 @@ export function CatalogView() {
             <p className="text-xs text-success flex items-center gap-1">
               <CheckCircle className="h-3 w-3" /> {summary.reappeared} producto(s) reaparecidos en el catálogo
             </p>
+          )}
+          {summary.errorCount > 0 && (
+            <details className="text-xs">
+              <summary className="flex items-center gap-1 text-warning cursor-pointer">
+                <AlertTriangle className="h-3 w-3" /> {summary.errorCount} fila(s) con errores (saltadas)
+              </summary>
+              <ul className="mt-1 space-y-0.5 text-muted-foreground max-h-32 overflow-auto">
+                {(summary.errors || []).map((err: string, i: number) => (
+                  <li key={i}>• {err}</li>
+                ))}
+              </ul>
+            </details>
           )}
           <button onClick={() => setSummary(null)} className="text-xs text-muted-foreground underline">Cerrar resumen</button>
         </div>
