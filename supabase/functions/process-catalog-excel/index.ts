@@ -4,7 +4,7 @@ import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 interface ParsedProduct {
@@ -151,6 +151,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    console.log("Starting catalog import...");
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No auth");
 
@@ -162,13 +163,16 @@ serve(async (req) => {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) throw new Error("Not authenticated");
+    console.log("User authenticated:", user.id);
 
     const formData = await req.formData();
     const file = formData.get("file") as File;
     if (!file) throw new Error("No file uploaded");
+    console.log("File received:", file.name, "size:", file.size);
 
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
+    console.log("Workbook parsed, sheets:", workbook.SheetNames.join(", "));
 
     // Process ONLY Ivrea sheet
     const sheetName = workbook.SheetNames.find(
@@ -183,6 +187,7 @@ serve(async (req) => {
     }
 
     const { products: allProducts, errors: allErrors } = parseSheet(sheet, "Ivrea");
+    console.log("Parsed products:", allProducts.length, "errors:", allErrors.length);
     const sheetsProcessed = [sheetName];
 
     // Free memory
