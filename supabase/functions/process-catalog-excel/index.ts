@@ -18,7 +18,7 @@ interface ParsedProduct {
 }
 
 function parseSheet(sheet: XLSX.WorkSheet, editorial: string): { products: ParsedProduct[]; errors: string[] } {
-  const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+  const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: true });
   const dataRows = rows.slice(8);
   let currentCategory = "En curso";
   const products: ParsedProduct[] = [];
@@ -28,18 +28,47 @@ function parseSheet(sheet: XLSX.WorkSheet, editorial: string): { products: Parse
     try {
       const row = dataRows[i];
       const cellA = String(row[0] || "").trim();
+      if (!cellA) continue;
       const upper = cellA.toUpperCase();
 
-      if (upper.includes("SERIES EN CURSO")) { currentCategory = "En curso"; continue; }
-      if (upper.includes("SERIES COMPLETAS")) { currentCategory = "Completo"; continue; }
+      // Category detection - match the actual Excel markers
+      if (upper.includes("MANGAS EN CURSO") || upper.includes("SERIES EN CURSO")) { currentCategory = "En curso"; continue; }
+      if (upper.includes("MANGAS YA COMPLETOS") || upper.includes("SERIES COMPLETAS")) { currentCategory = "Completo"; continue; }
       if (upper.includes("TOMOS UNICOS") || upper.includes("TOMOS ÚNICOS")) { currentCategory = "Tomo Único"; continue; }
-      if (!cellA || upper.includes("TITULO") || upper.includes("ISBN") || upper.includes("PRECIO")) continue;
+      if (upper.includes("NOVEDADES")) { currentCategory = "En curso"; continue; }
+      if (upper.includes("REIMPRESIONES")) { currentCategory = "En curso"; continue; }
+      if (upper.includes("COMICS")) { currentCategory = "Comic"; continue; }
+
+      // Skip header-like rows and non-data rows
+      if (upper.includes("TITULO") || upper.includes("EAN") || upper.includes("PRECIO") ||
+          upper.includes("CANTIDAD") || upper.includes("SUBTOTAL") || upper.includes("POR FAVOR") ||
+          upper.includes("COMPLETAR") || upper.includes("REEDICIONES")) continue;
 
       const rawTitle = cellA;
-      const isbn = String(row[1] || "").trim();
-      const priceRaw = row[2];
-      const precio = typeof priceRaw === "number" ? priceRaw : parseFloat(String(priceRaw).replace(/[^0-9.,]/g, "").replace(",", ".")) || null;
 
+      // Handle ISBN - could be scientific notation (9.79139E+12), "ISBN A CONFIRMAR", or normal
+      let isbn = "";
+      const rawIsbn = row[1];
+      if (typeof rawIsbn === "number") {
+        // Scientific notation number - convert to string ISBN
+        isbn = Math.round(rawIsbn).toString();
+      } else {
+        isbn = String(rawIsbn || "").trim();
+      }
+      // Normalize "ISBN A CONFIRMAR" variants
+      if (isbn.toUpperCase().includes("CONFIRMAR")) isbn = "Por confirmar";
+
+      // Handle price - could be number or formatted string like "$ 25,500.00"
+      const priceRaw = row[2];
+      let precio: number | null = null;
+      if (typeof priceRaw === "number") {
+        precio = priceRaw;
+      } else {
+        const cleaned = String(priceRaw || "").replace(/[$\s]/g, "").replace(/\./g, "").replace(",", ".");
+        precio = parseFloat(cleaned) || null;
+      }
+
+      // Separate title and tomo
       const tomoMatch = rawTitle.match(/^(.+?)\s+(\d+(?:\.\d+)?)$/);
       let titulo: string, tomo: string;
       if (tomoMatch) { titulo = tomoMatch[1].trim(); tomo = tomoMatch[2]; }
