@@ -45,7 +45,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
   // Catalog autocomplete
   const [catalogItems, setCatalogItems] = useState<CatalogSuggestion[]>([]);
   const [activeAutocomplete, setActiveAutocomplete] = useState<number | null>(null);
-  const [suggestions, setSuggestions] = useState<CatalogSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const autocompleteRef = useRef<HTMLDivElement>(null);
 
   // Load catalog titles on open
@@ -79,9 +79,17 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
     if (field === "titulo") {
       if (value.length >= 2) {
         const lower = value.toLowerCase();
-        const matches = catalogItems
-          .filter(c => c.titulo.toLowerCase().includes(lower))
-          .slice(0, 8);
+        // Deduplicate by titulo (ignore tomo), show unique titles only
+        const seen = new Set<string>();
+        const matches: string[] = [];
+        for (const c of catalogItems) {
+          const t = c.titulo.toLowerCase();
+          if (t.includes(lower) && !seen.has(t)) {
+            seen.add(t);
+            matches.push(c.titulo);
+            if (matches.length >= 15) break;
+          }
+        }
         setSuggestions(matches);
         setActiveAutocomplete(idx);
       } else {
@@ -91,9 +99,8 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
     }
   };
 
-  const selectSuggestion = (idx: number, suggestion: CatalogSuggestion) => {
-    const fullTitle = suggestion.tomo ? `${suggestion.titulo} ${suggestion.tomo}` : suggestion.titulo;
-    setItems(prev => prev.map((it, i) => i === idx ? { ...it, titulo: fullTitle } : it));
+  const selectSuggestion = (idx: number, title: string) => {
+    setItems(prev => prev.map((it, i) => i === idx ? { ...it, titulo: title } : it));
     setActiveAutocomplete(null);
     setSuggestions([]);
   };
@@ -192,11 +199,11 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
           <DialogTitle className="font-display text-xl">Nuevo Pedido</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 mt-2">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-3 mt-1">
+          <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
             <div>
-              <label className={labelClass}>Cliente (Número)</label>
-              <input value={cliente} onChange={e => setCliente(e.target.value)} placeholder="Ej: 77331983" className={inputClass} />
+              <label className={labelClass}>Cliente</label>
+              <input value={cliente} onChange={e => setCliente(e.target.value)} placeholder="Nro. cliente" className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>Estado</label>
@@ -205,15 +212,14 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
                 {estados.map(e => <option key={e} value={e} />)}
               </datalist>
             </div>
-          </div>
-
-          <div className="flex items-center bg-muted rounded-lg p-0.5">
-            <button onClick={() => setMode("manual")} className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center justify-center gap-1.5 ${mode === "manual" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-              <Plus className="h-3.5 w-3.5" /> Manual
-            </button>
-            <button onClick={() => setMode("collection")} className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center justify-center gap-1.5 ${mode === "collection" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-              <BookCopy className="h-3.5 w-3.5" /> Colección
-            </button>
+            <div className="flex bg-muted rounded-lg p-0.5 h-[38px]">
+              <button onClick={() => setMode("manual")} className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${mode === "manual" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+              <button onClick={() => setMode("collection")} className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${mode === "collection" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                <BookCopy className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
 
           {mode === "collection" ? (
@@ -287,16 +293,15 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
                               className="w-full min-w-[160px] px-1.5 py-1 rounded border border-border bg-card text-xs focus:outline-none focus:ring-1 focus:ring-primary/30"
                             />
                             {activeAutocomplete === idx && suggestions.length > 0 && (
-                              <div ref={autocompleteRef} className="absolute z-[100] top-[calc(100%+4px)] left-0 min-w-[280px] w-max max-w-[400px] bg-card border border-border rounded-lg shadow-xl max-h-52 overflow-y-auto">
+                              <div ref={autocompleteRef} className="absolute z-[100] top-[calc(100%+4px)] left-0 min-w-[240px] w-max max-w-[360px] bg-card border border-border rounded-lg shadow-xl max-h-52 overflow-y-auto">
                                 <div className="py-1">
-                                  {suggestions.map((s, si) => (
+                                  {suggestions.map((title, si) => (
                                     <button
                                       key={si}
-                                      onClick={() => selectSuggestion(idx, s)}
-                                      className="w-full text-left px-3 py-2 text-sm hover:bg-primary/10 transition-colors flex items-baseline gap-2 group"
+                                      onClick={() => selectSuggestion(idx, title)}
+                                      className="w-full text-left px-3 py-1.5 text-sm hover:bg-primary/10 transition-colors font-medium text-foreground hover:text-primary"
                                     >
-                                      <span className="font-medium text-foreground group-hover:text-primary transition-colors">{s.titulo}</span>
-                                      {s.tomo && <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{s.tomo}</span>}
+                                      {title}
                                     </button>
                                   ))}
                                 </div>
