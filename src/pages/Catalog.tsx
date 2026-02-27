@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BookOpen,
@@ -35,11 +35,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import type { CatalogCategory, CatalogItem, CatalogState, ImportReport } from "@/lib/catalog-types";
-import { loadCatalog, saveCatalog, CATEGORIES } from "@/lib/catalog-types";
+import { CATEGORIES } from "@/lib/catalog-types";
 import { importExcel } from "@/lib/catalog-import";
 import { ImportReportDialog } from "@/components/ImportReportDialog";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const PAGE_SIZE = 50;
 
@@ -57,55 +59,139 @@ function formatPrice(n: number | null): string {
   return `$ ${n.toLocaleString("es-AR")}`;
 }
 
+// Map CatalogCategory to estado_publicacion stored in DB
+function categoryToEstado(cat: CatalogCategory): string {
+  return cat;
+}
+
 export default function CatalogPage() {
   const navigate = useNavigate();
-  const [catalog, setCatalog] = useState<CatalogState>(loadCatalog);
+  const { user, role } = useAuth();
+  const isAdmin = role === "admin";
+
+  const [items, setItems] = useState<CatalogItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<CatalogCategory | "">("");
   const [reimpresionOnly, setReimpresionOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [reportOpen, setReportOpen] = useState(false);
   const [currentReport, setCurrentReport] = useState<ImportReport | null>(null);
+  const [lastImportDate, setLastImportDate] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const persist = useCallback((s: CatalogState) => {
-    setCatalog(s);
-    saveCatalog(s);
+  // ── Fetch catalog from DB ──
+  const fetchCatalog = useCallback(async () => {
+    setLoading(true);
+    let all: CatalogItem[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data, error } = await supabase
+        .from("catalog_products")
+        .select("*")
+        .order("titulo")
+        .range(from, from + pageSize - 1);
+      if (error) {
+        toast.error("Error al cargar catálogo");
+        break;
+      }
+      if (!data || data.length === 0) break;
+      all = all.concat(data.map(d => ({
+        id: d.identificador_unico || String(d.id),
+        title: d.titulo,
+        isbn: d.isbn,
+        price: d.precio_costo_ars,
+        category: (d.estado_publicacion || "NOVEDADES") as CatalogCategory,
+        reimpresion: d.estado === "Reimpresión",
+        lastUpdated: d.updated_at,
+      })));
+      if (data.length < pageSize) break;
+      from += pageSize;
+    }
+    setItems(all);
+    if (all.length > 0) {
+      const latest = all.reduce((a, b) => a.lastUpdated > b.lastUpdated ? a : b);
+      setLastImportDate(latest.lastUpdated);
+    }
+    setLoading(false);
   }, []);
 
-  // ── Import handler ──
+  useEffect(() => {
+    if (user) fetchCatalog();
+  }, [user, fetchCatalog]);
+
+  // ── Import handler (admin only) ──
   const handleFile = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!isAdmin || !user) return;
       const file = e.target.files?.[0];
       if (!file) return;
       try {
         const buf = await file.arrayBuffer();
-        const { state, report } = importExcel(buf, catalog);
-        persist(state);
+        const existingState: CatalogState = { items, lastImportDate, importHistory: [] };
+        const { state, report } = importExcel(buf, existingState);
+
+        // Sync to Supabase: delete all then insert
+        toast.loading("Sincronizando catálogo...");
+        
+        // Delete all existing catalog products
+        await supabase.from("catalog_products").delete().neq("id", 0);
+
+        // Insert in batches
+        const batchSize = 200;
+        const rows = state.items.map(item => ({
+          user_id: user.id,
+          titulo: item.title,
+          isbn: item.isbn,
+          precio_costo_ars: item.price,
+          estado_publicacion: categoryToEstado(item.category),
+          estado: item.reimpresion ? "Reimpresión" : "Disponible",
+          identificador_unico: item.id,
+          editorial: "",
+          tomo: "",
+        }));
+
+        for (let i = 0; i < rows.length; i += batchSize) {
+          const batch = rows.slice(i, i + batchSize);
+          const { error } = await supabase.from("catalog_products").insert(batch);
+          if (error) {
+            console.error("Insert error:", error);
+            toast.error("Error al guardar lote de productos");
+          }
+        }
+
+        toast.dismiss();
         setCurrentReport(report);
         setReportOpen(true);
         setPage(1);
         toast.success(`Importación completada: ${report.newItems} nuevos, ${report.updatedItems} actualizados`);
+        fetchCatalog();
       } catch (err: unknown) {
+        toast.dismiss();
         const msg = err instanceof Error ? err.message : "Error desconocido";
         toast.error("Error al importar: " + msg);
       }
-      // Reset input
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
-    [catalog, persist]
+    [items, lastImportDate, isAdmin, user, fetchCatalog]
   );
 
-  // ── Delete catalog ──
-  const handleDeleteCatalog = useCallback(() => {
-    persist({ items: [], lastImportDate: null, importHistory: [] });
+  // ── Delete catalog (admin only) ──
+  const handleDeleteCatalog = useCallback(async () => {
+    if (!isAdmin) return;
+    toast.loading("Eliminando catálogo...");
+    await supabase.from("catalog_products").delete().neq("id", 0);
+    toast.dismiss();
+    setItems([]);
+    setLastImportDate(null);
     setPage(1);
     toast.success("Catálogo eliminado");
-  }, [persist]);
+  }, [isAdmin]);
 
   // ── Filtering ──
   const filtered = useMemo(() => {
-    return catalog.items.filter((item) => {
+    return items.filter((item) => {
       const matchSearch =
         !search ||
         item.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -114,20 +200,20 @@ export default function CatalogPage() {
       const matchReimpresion = !reimpresionOnly || item.reimpresion;
       return matchSearch && matchCategory && matchReimpresion;
     });
-  }, [catalog.items, search, categoryFilter, reimpresionOnly]);
+  }, [items, search, categoryFilter, reimpresionOnly]);
 
   // ── Category counts ──
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    for (const item of catalog.items) {
+    for (const item of items) {
       counts[item.category] = (counts[item.category] || 0) + 1;
     }
     return counts;
-  }, [catalog.items]);
+  }, [items]);
 
   const reimpresionCount = useMemo(
-    () => catalog.items.filter((i) => i.reimpresion).length,
-    [catalog.items]
+    () => items.filter((i) => i.reimpresion).length,
+    [items]
   );
 
   // ── Pagination ──
@@ -152,7 +238,13 @@ export default function CatalogPage() {
     return btns;
   }, [totalPages, safePage]);
 
-  const lastReport = currentReport || catalog.importHistory[0] || null;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground">Cargando catálogo...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -172,40 +264,39 @@ export default function CatalogPage() {
             </div>
             <div>
               <h1 className="text-xl font-display font-bold tracking-tight">Catálogo Entelequia</h1>
-              {catalog.lastImportDate && (
+              {lastImportDate && (
                 <span className="text-xs text-muted-foreground">
                   Última importación:{" "}
-                  {format(new Date(catalog.lastImportDate), "dd/MM/yyyy HH:mm", { locale: es })}
+                  {format(new Date(lastImportDate), "dd/MM/yyyy HH:mm", { locale: es })}
                 </span>
               )}
             </div>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Import button */}
-            <label className="cursor-pointer">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls"
-                className="hidden"
-                onChange={handleFile}
-              />
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 text-primary text-sm font-medium hover:bg-primary/10 hover:border-primary/60 transition-colors">
-                <Upload className="h-4 w-4" />
-                Importar Excel
-              </div>
-            </label>
+            {/* Import button - admin only */}
+            {isAdmin && (
+              <label className="cursor-pointer">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={handleFile}
+                />
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 text-primary text-sm font-medium hover:bg-primary/10 hover:border-primary/60 transition-colors">
+                  <Upload className="h-4 w-4" />
+                  Importar Excel
+                </div>
+              </label>
+            )}
 
             {/* View report */}
-            {lastReport && (
+            {currentReport && (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  setCurrentReport(lastReport);
-                  setReportOpen(true);
-                }}
+                onClick={() => setReportOpen(true)}
                 className="gap-1.5"
               >
                 <FileText className="h-4 w-4" />
@@ -213,8 +304,8 @@ export default function CatalogPage() {
               </Button>
             )}
 
-            {/* Delete catalog */}
-            {catalog.items.length > 0 && (
+            {/* Delete catalog - admin only */}
+            {isAdmin && items.length > 0 && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" size="sm" className="gap-1.5">
@@ -226,7 +317,7 @@ export default function CatalogPage() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>¿Eliminar todo el catálogo?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Esta acción eliminará todos los {catalog.items.length} productos del catálogo. Esta acción no se puede deshacer.
+                      Esta acción eliminará todos los {items.length} productos del catálogo. Esta acción no se puede deshacer.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -243,28 +334,31 @@ export default function CatalogPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-5">
-        {catalog.items.length === 0 ? (
-          /* Empty state */
+        {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
             <div className="h-20 w-20 rounded-2xl bg-muted flex items-center justify-center">
               <BookOpen className="h-10 w-10 text-muted-foreground" />
             </div>
             <h2 className="text-lg font-semibold text-foreground">No hay productos en el catálogo</h2>
             <p className="text-sm text-muted-foreground max-w-md">
-              Importá un archivo Excel (.xlsx) de Entelequia para comenzar. El sistema detectará automáticamente las categorías, títulos, ISBN y precios.
+              {isAdmin
+                ? "Importá un archivo Excel (.xlsx) de Entelequia para comenzar. El sistema detectará automáticamente las categorías, títulos, ISBN y precios."
+                : "El administrador aún no ha importado un catálogo. Contactá al admin para que suba el archivo Excel."}
             </p>
-            <label className="cursor-pointer mt-2">
-              <input
-                type="file"
-                accept=".xlsx,.xls"
-                className="hidden"
-                onChange={handleFile}
-              />
-              <div className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 text-primary font-medium hover:bg-primary/10 hover:border-primary/60 transition-colors">
-                <Upload className="h-5 w-5" />
-                Importar Excel
-              </div>
-            </label>
+            {isAdmin && (
+              <label className="cursor-pointer mt-2">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={handleFile}
+                />
+                <div className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 text-primary font-medium hover:bg-primary/10 hover:border-primary/60 transition-colors">
+                  <Upload className="h-5 w-5" />
+                  Importar Excel
+                </div>
+              </label>
+            )}
           </div>
         ) : (
           <>
@@ -284,7 +378,6 @@ export default function CatalogPage() {
               </div>
 
               <div className="flex flex-wrap gap-2 items-center">
-                {/* All filter */}
                 <button
                   onClick={() => { setCategoryFilter(""); setPage(1); }}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
@@ -293,7 +386,7 @@ export default function CatalogPage() {
                       : "bg-card text-muted-foreground border-border hover:text-foreground"
                   }`}
                 >
-                  Todos ({catalog.items.length})
+                  Todos ({items.length})
                 </button>
 
                 {CATEGORIES.filter(c => c !== "REIMPRESIONES").map((cat) => (
@@ -310,7 +403,6 @@ export default function CatalogPage() {
                   </button>
                 ))}
 
-                {/* Reimpresion toggle */}
                 <button
                   onClick={() => { setReimpresionOnly(!reimpresionOnly); setPage(1); }}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
@@ -327,7 +419,7 @@ export default function CatalogPage() {
             {/* Results count */}
             <div className="text-xs text-muted-foreground">
               {filtered.length} resultado{filtered.length !== 1 ? "s" : ""}
-              {filtered.length !== catalog.items.length && ` de ${catalog.items.length}`}
+              {filtered.length !== items.length && ` de ${items.length}`}
             </div>
 
             {/* Table */}
