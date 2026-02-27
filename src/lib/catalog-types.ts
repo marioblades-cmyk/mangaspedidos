@@ -49,6 +49,7 @@ export interface ImportReport {
   noValidIsbn: { title: string; generatedIsbn: string }[];
   noPrice: string[];
   reimpresionMatches: { title: string; category: string }[];
+  categoryChanges: { title: string; oldCategory: string; newCategory: string }[];
   errors: string[];
 }
 

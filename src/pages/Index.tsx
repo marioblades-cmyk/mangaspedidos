@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Filter, BookOpen, Users, List, Loader2, Archive, LogOut, Shield, Eye, Library, Download } from "lucide-react";
+import { Search, Filter, BookOpen, Users, List, Loader2, Archive, LogOut, Shield, Eye, Library, Menu, Settings, X } from "lucide-react";
 import { Order, getStats } from "@/data/orders";
 import { useOrders } from "@/hooks/useOrders";
 import { useClientPayments } from "@/hooks/useClientPayments";
@@ -15,7 +15,6 @@ import { EstadoQuickActions } from "@/components/EstadoQuickActions";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
-import { exportOrdersToExcel } from "@/lib/export-orders";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -38,6 +37,7 @@ const Index = () => {
   const [bulkEditIds, setBulkEditIds] = useState<number[]>([]);
   const [decimals, setDecimals] = useState(1);
   const [showEnviados, setShowEnviados] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Admin supervision
   const [allUsers, setAllUsers] = useState<{ user_id: string; email: string; display_name: string | null }[]>([]);
@@ -45,7 +45,6 @@ const Index = () => {
   const [supervisedOrders, setSupervisedOrders] = useState<Order[] | null>(null);
   const [supervisedPayments, setSupervisedPayments] = useState<any[] | null>(null);
 
-  // Load all users for admin
   useEffect(() => {
     if (role !== "admin") return;
     (async () => {
@@ -54,7 +53,6 @@ const Index = () => {
     })();
   }, [role]);
 
-  // Load supervised user data
   useEffect(() => {
     if (!viewAsUserId || viewAsUserId === user?.id) {
       setSupervisedOrders(null);
@@ -148,55 +146,65 @@ const Index = () => {
       {isSupervising && (
         <div className="bg-accent/60 border-b border-accent text-accent-foreground px-4 py-2 flex items-center justify-center gap-2 text-sm font-medium">
           <Eye className="h-4 w-4" />
-          Supervisando datos de: <strong>{supervisedUser?.email || viewAsUserId}</strong>
-          <button onClick={() => setViewAsUserId(null)} className="ml-3 underline text-xs hover:text-foreground">Volver a mis datos</button>
+          Supervisando: <strong>{supervisedUser?.email || viewAsUserId}</strong>
+          <button onClick={() => setViewAsUserId(null)} className="ml-3 underline text-xs hover:text-foreground">Volver</button>
         </div>
       )}
 
       <header className="border-b border-border bg-card sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <BookOpen className="h-5 w-5 text-primary" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-2">
+          {/* Logo */}
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <BookOpen className="h-4 w-4 text-primary" />
             </div>
-            <div>
-              <h1 className="text-xl font-display font-bold tracking-tight">MangaTracker</h1>
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
+            <div className="min-w-0 hidden sm:block">
+              <h1 className="text-lg font-display font-bold tracking-tight">MangaTracker</h1>
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                 {user?.email}
                 {role === "admin" && <Shield className="h-3 w-3 text-primary" />}
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Admin user selector */}
-            {role === "admin" && (
-              <select
-                value={viewAsUserId || user?.id || ""}
-                onChange={e => setViewAsUserId(e.target.value === user?.id ? null : e.target.value)}
-                className="text-xs bg-muted border border-border rounded-md px-2 py-1.5 text-foreground cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30 max-w-[180px]"
-                title="Supervisar usuario"
-              >
-                <option value={user?.id || ""}>👤 Mis datos</option>
-                {allUsers.filter(u => u.user_id !== user?.id).map(u => (
-                  <option key={u.user_id} value={u.user_id}>
-                    {u.email || u.display_name || u.user_id.slice(0, 8)}
-                  </option>
-                ))}
-              </select>
-            )}
 
+          {/* Primary actions - always visible */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* View toggle */}
             <div className="flex items-center bg-muted rounded-lg p-0.5">
-              <button onClick={() => setView("table")} className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${view === "table" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                <List className="h-3.5 w-3.5" /> Pedidos
+              <button onClick={() => setView("table")} className={`px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${view === "table" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                <List className="h-3.5 w-3.5" /> <span className="hidden xs:inline">Pedidos</span>
               </button>
-              <button onClick={() => setView("clients")} className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${view === "clients" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                <Users className="h-3.5 w-3.5" /> Clientes
+              <button onClick={() => setView("clients")} className={`px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${view === "clients" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                <Users className="h-3.5 w-3.5" /> <span className="hidden xs:inline">Clientes</span>
               </button>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-md font-medium">
-                {activeOrders.length} pedidos
-              </span>
+
+            {/* Add order - always visible */}
+            {!isSupervising && <AddOrderDialog onAdd={addOrders} estados={estados} />}
+
+            {/* Desktop-only actions */}
+            <div className="hidden md:flex items-center gap-1.5">
+              {role === "admin" && (
+                <select
+                  value={viewAsUserId || user?.id || ""}
+                  onChange={e => setViewAsUserId(e.target.value === user?.id ? null : e.target.value)}
+                  className="text-xs bg-muted border border-border rounded-md px-2 py-1.5 text-foreground cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30 max-w-[180px]"
+                  title="Supervisar usuario"
+                >
+                  <option value={user?.id || ""}>👤 Mis datos</option>
+                  {allUsers.filter(u => u.user_id !== user?.id).map(u => (
+                    <option key={u.user_id} value={u.user_id}>
+                      {u.email || u.display_name || u.user_id.slice(0, 8)}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <button
+                onClick={() => navigate("/catalog")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/80 transition-colors"
+              >
+                <Library className="h-3.5 w-3.5" /> Catálogo
+              </button>
               <select
                 value={decimals}
                 onChange={e => setDecimals(Number(e.target.value))}
@@ -207,32 +215,72 @@ const Index = () => {
                 <option value={2}>.00</option>
                 <option value={3}>.000</option>
               </select>
+              <button
+                onClick={signOut}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20 transition-colors"
+              >
+                <LogOut className="h-3.5 w-3.5" /> Salir
+              </button>
             </div>
-            {!isSupervising && <AddOrderDialog onAdd={addOrders} estados={estados} />}
+
+            {/* Mobile hamburger */}
             <button
-              onClick={() => exportOrdersToExcel(filtered)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/80 transition-colors"
-              title="Exportar pedidos a Excel"
-              disabled={filtered.length === 0}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-md hover:bg-muted text-muted-foreground"
             >
-              <Download className="h-3.5 w-3.5" /> Excel
-            </button>
-            <button
-              onClick={() => navigate("/catalog")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/80 transition-colors"
-              title="Catálogo Entelequia"
-            >
-              <Library className="h-3.5 w-3.5" /> Catálogo
-            </button>
-            <button
-              onClick={signOut}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20 transition-colors"
-              title="Cerrar sesión"
-            >
-              <LogOut className="h-3.5 w-3.5" /> Salir
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </div>
+
+        {/* Mobile dropdown menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-border bg-card px-4 py-3 space-y-3 animate-in slide-in-from-top-2 duration-200">
+            {role === "admin" && (
+              <div>
+                <label className="text-[10px] font-semibold text-muted-foreground uppercase">Supervisar usuario</label>
+                <select
+                  value={viewAsUserId || user?.id || ""}
+                  onChange={e => { setViewAsUserId(e.target.value === user?.id ? null : e.target.value); setMobileMenuOpen(false); }}
+                  className="w-full text-xs bg-muted border border-border rounded-md px-2 py-1.5 text-foreground"
+                >
+                  <option value={user?.id || ""}>👤 Mis datos</option>
+                  {allUsers.filter(u => u.user_id !== user?.id).map(u => (
+                    <option key={u.user_id} value={u.user_id}>
+                      {u.email || u.display_name || u.user_id.slice(0, 8)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { navigate("/catalog"); setMobileMenuOpen(false); }}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-secondary text-secondary-foreground text-xs font-medium"
+              >
+                <Library className="h-3.5 w-3.5" /> Catálogo
+              </button>
+              <select
+                value={decimals}
+                onChange={e => setDecimals(Number(e.target.value))}
+                className="text-xs bg-muted border border-border rounded px-2 py-2 text-muted-foreground"
+              >
+                <option value={1}>.0</option>
+                <option value={2}>.00</option>
+                <option value={3}>.000</option>
+              </select>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">{user?.email}</span>
+              <button
+                onClick={() => { signOut(); setMobileMenuOpen(false); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-destructive/10 text-destructive text-xs font-medium"
+              >
+                <LogOut className="h-3.5 w-3.5" /> Salir
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
