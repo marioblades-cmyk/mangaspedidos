@@ -24,13 +24,13 @@ const iconStyles = {
 
 export function StatCard({ title, value, subtitle, icon, variant = "default" }: StatCardProps) {
   return (
-    <div className={`rounded-lg border p-5 transition-all ${variantStyles[variant]}`}>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-medium text-muted-foreground">{title}</span>
+    <div className={`rounded-lg border p-3 sm:p-5 transition-all ${variantStyles[variant]}`}>
+      <div className="flex items-center justify-between mb-1.5 sm:mb-3">
+        <span className="text-[11px] sm:text-sm font-medium text-muted-foreground">{title}</span>
         <span className={iconStyles[variant]}>{icon}</span>
       </div>
-      <p className="text-2xl font-display font-bold tracking-tight">{value}</p>
-      {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+      <p className="text-lg sm:text-2xl font-display font-bold tracking-tight">{value}</p>
+      {subtitle && <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">{subtitle}</p>}
     </div>
   );
 }
