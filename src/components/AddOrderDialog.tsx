@@ -213,7 +213,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
           <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Agregar</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[98vw] sm:w-[96vw] max-w-7xl max-h-[95vh] sm:max-h-[92vh] overflow-y-auto p-3 sm:p-5" style={{ minWidth: 280 }}>
+      <DialogContent className="w-[98vw] sm:w-[96vw] lg:w-[98vw] max-w-[1600px] max-h-[95vh] sm:max-h-[92vh] overflow-y-auto p-3 sm:p-5" style={{ minWidth: 280 }}>
         <DialogHeader>
           <DialogTitle className="font-display text-base sm:text-xl">Nuevo Pedido</DialogTitle>
         </DialogHeader>
@@ -310,7 +310,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
                             {suggestions.map((title, si) => (
                               <button
                                 key={si}
-                                onClick={() => selectSuggestion(idx, title)}
+                                onMouseDown={(e) => { e.preventDefault(); selectSuggestion(idx, title); }}
                                 className="w-full text-left px-3 py-1.5 text-sm hover:bg-primary/10 transition-colors font-medium text-foreground hover:text-primary"
                               >
                                 {title}
@@ -381,7 +381,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
                                   {suggestions.map((title, si) => (
                                     <button
                                       key={si}
-                                      onClick={() => selectSuggestion(idx, title)}
+                                      onMouseDown={(e) => { e.preventDefault(); selectSuggestion(idx, title); }}
                                       className="w-full text-left px-3 py-1.5 text-sm hover:bg-primary/10 transition-colors font-medium text-foreground hover:text-primary"
                                     >
                                       {title}
