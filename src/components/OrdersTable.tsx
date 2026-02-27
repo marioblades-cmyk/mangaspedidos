@@ -105,8 +105,8 @@ export function OrdersTable({ orders, onEdit, onDelete, onBulkDelete, onBulkEdit
         </div>
       )}
 
-      <div className="rounded-lg border border-border bg-card overflow-hidden shadow-sm">
-        <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
+      <div className="rounded-lg border border-border bg-card overflow-hidden shadow-sm origin-top-left scale-[0.62] sm:scale-100 w-[161%] sm:w-full">
+        <div className="overflow-x-auto max-h-[110vh] sm:max-h-[70vh] overflow-y-auto">
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-[5]">
               <tr className="border-b border-border bg-card shadow-[0_1px_3px_0_rgba(0,0,0,0.05)]">
