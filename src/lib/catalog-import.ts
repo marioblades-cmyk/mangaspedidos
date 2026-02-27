@@ -89,6 +89,8 @@ export function importExcel(
     defval: "",
   });
 
+  console.log(`[Catálogo] Pestaña: "${sheetName}", Total filas: ${rows.length}`);
+
   const report: ImportReport = {
     timestamp: new Date().toISOString(),
     totalRows: 0,
@@ -110,34 +112,37 @@ export function importExcel(
   let currentCategory: CatalogCategory | null = null;
   const isbnSeen = new Map<string, string[]>();
 
-  // Process rows starting from row 9 (index 8)
-  for (let i = 8; i < rows.length; i++) {
-    const row = rows[i]!;
+  // Scan ALL rows (starting from 0) to find category markers and items
+  // Categories can appear before row 9 — we scan from the start but only collect items after the first category is found
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.length === 0) continue;
+    
     const firstCell = String(row[0] ?? "").trim();
-    report.totalRows++;
-
+    
     if (!firstCell) {
-      report.skippedRows++;
+      if (currentCategory) report.skippedRows++;
       continue;
     }
 
-    // Check for category marker
+    // Check for category marker on ANY row
     const detectedCat = detectCategory(firstCell);
     if (detectedCat) {
       currentCategory = detectedCat;
-      report.skippedRows++;
+      console.log(`[Catálogo] Categoría detectada en fila ${i + 1}: ${detectedCat}`);
       continue;
     }
 
+    // Skip header/summary rows
     if (shouldSkipRow(firstCell)) {
-      report.skippedRows++;
+      if (currentCategory) report.skippedRows++;
       continue;
     }
 
-    if (!currentCategory) {
-      report.skippedRows++;
-      continue;
-    }
+    // Only process item rows once we've found at least one category
+    if (!currentCategory) continue;
+
+    report.totalRows++;
 
     const title = firstCell;
     const rawIsbn = String(row[1] ?? "");
@@ -169,12 +174,12 @@ export function importExcel(
       const existing = isbnSeen.get(finalIsbn)!;
       existing.push(title);
       const oldIsbn = finalIsbn;
-      finalIsbn = hashTitle(title);
+      finalIsbn = hashTitle(title + "_dup");
       report.reassignedIsbns.push({ title, oldIsbn, newIsbn: finalIsbn });
       isbnReassigned = true;
     }
 
-    if (!isbnReassigned && isbn !== finalIsbn) {
+    if (!isbnReassigned && isbn && isbn !== finalIsbn) {
       report.reassignedIsbns.push({ title, oldIsbn: isbn || "(vacío)", newIsbn: finalIsbn });
     }
 
@@ -198,6 +203,8 @@ export function importExcel(
     report.byCategory[currentCategory] = (report.byCategory[currentCategory] || 0) + 1;
   }
 
+  console.log(`[Catálogo] Items parseados: ${parsedItems.length}, Reimpresiones: ${reimpresionItems.length}`);
+
   // Build duplicate ISBN report
   for (const [isbn, titles] of isbnSeen) {
     if (titles.length > 1) {
@@ -219,13 +226,11 @@ export function importExcel(
 
   // Merge parsed items
   for (const item of parsedItems) {
-    // Search by title first, then isbn
     const matchByTitle = existingByTitle.get(item.title.toLowerCase());
     const matchByIsbn = existingByIsbn.get(item.isbn);
     const match = matchByTitle || matchByIsbn;
 
     if (match) {
-      // Update existing, keep original ID
       mergedMap.set(match.id, {
         ...match,
         title: item.title,
@@ -250,7 +255,6 @@ export function importExcel(
 
   // ── Apply reimpresion tags ──
   for (const rItem of reimpresionItems) {
-    // Find by title first
     let found: CatalogItem | undefined;
     for (const [, item] of mergedMap) {
       if (item.title.toLowerCase() === rItem.title.toLowerCase()) {
@@ -258,7 +262,6 @@ export function importExcel(
         break;
       }
     }
-    // Fallback: find by isbn
     if (!found && rItem.isbn && isValidIsbn(rItem.isbn)) {
       found = mergedMap.get(rItem.isbn);
     }
@@ -268,14 +271,13 @@ export function importExcel(
       if (rItem.price !== null) found.price = rItem.price;
       report.reimpresionMatches.push({ title: rItem.title, category: found.category });
     } else {
-      // No match found — add as new item in its own right
       const isbn = isValidIsbn(rItem.isbn) ? rItem.isbn : hashTitle(rItem.title);
       const newItem: CatalogItem = {
         id: isbn,
         title: rItem.title,
         isbn,
         price: rItem.price,
-        category: "NOVEDADES", // default
+        category: "NOVEDADES",
         reimpresion: true,
         lastUpdated: new Date().toISOString(),
       };
@@ -288,6 +290,7 @@ export function importExcel(
   report.itemsLoaded = parsedItems.length;
 
   const finalItems = Array.from(mergedMap.values());
+  console.log(`[Catálogo] Items finales en catálogo: ${finalItems.length}`);
 
   const newState: CatalogState = {
     items: finalItems,
