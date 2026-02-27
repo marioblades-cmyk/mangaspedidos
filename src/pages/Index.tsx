@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Filter, BookOpen, Users, List, Loader2, Archive, LogOut, Shield, Eye, Library } from "lucide-react";
+import { Search, Filter, BookOpen, Users, List, Loader2, Archive, LogOut, Shield, Eye, Library, Download } from "lucide-react";
 import { Order, getStats } from "@/data/orders";
 import { useOrders } from "@/hooks/useOrders";
 import { useClientPayments } from "@/hooks/useClientPayments";
@@ -15,6 +15,7 @@ import { EstadoQuickActions } from "@/components/EstadoQuickActions";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
+import { exportOrdersToExcel } from "@/lib/export-orders";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -208,6 +209,14 @@ const Index = () => {
               </select>
             </div>
             {!isSupervising && <AddOrderDialog onAdd={addOrders} estados={estados} />}
+            <button
+              onClick={() => exportOrdersToExcel(filtered)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/80 transition-colors"
+              title="Exportar pedidos a Excel"
+              disabled={filtered.length === 0}
+            >
+              <Download className="h-3.5 w-3.5" /> Excel
+            </button>
             <button
               onClick={() => navigate("/catalog")}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/80 transition-colors"
