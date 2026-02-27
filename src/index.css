@@ -78,8 +78,28 @@
   .glow-warning {
     box-shadow: 0 0 12px hsl(40 95% 50% / 0.1);
   }
+
+  @keyframes row-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   .fade-in-row {
     opacity: 0;
-    animation: fade-in 0.4s ease-out forwards;
+    animation: row-fade-in 0.35s ease-out forwards;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fade-in-row {
+      opacity: 1;
+      animation: none;
+      transform: none;
+    }
   }
 }
