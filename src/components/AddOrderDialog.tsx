@@ -214,14 +214,13 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
           <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Agregar</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[100vw] sm:w-[96vw] max-w-5xl max-h-[100vh] sm:max-h-[92vh] overflow-y-auto p-1.5 sm:p-5" style={{ minWidth: 280, minHeight: 480 }}>
-        <div className="origin-top scale-[0.65] sm:scale-100 w-[154%] sm:w-full">
+      <DialogContent className="w-[98vw] sm:w-[96vw] max-w-5xl max-h-[95vh] sm:max-h-[92vh] overflow-y-auto p-3 sm:p-5" style={{ minWidth: 280 }}>
         <DialogHeader>
-          <DialogTitle className="font-display text-xl">Nuevo Pedido</DialogTitle>
+          <DialogTitle className="font-display text-base sm:text-xl">Nuevo Pedido</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3 mt-1">
-          <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+        <div className="space-y-2 sm:space-y-3 mt-1">
+          <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_1fr_auto] gap-2 items-end">
             <div>
               <label className={labelClass}>Cliente</label>
               <input value={cliente} onChange={e => setCliente(e.target.value)} placeholder="Nro. cliente" className={inputClass} />
@@ -286,8 +285,8 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
                 </Button>
               </div>
 
-              <div className="border border-border rounded-lg overflow-visible">
-                <div className="overflow-x-auto overflow-y-auto min-h-[230px] max-h-[45vh]">
+              <div className="border border-border rounded-lg overflow-visible origin-top-left scale-[0.72] sm:scale-100 w-[139%] sm:w-full">
+                <div className="overflow-x-auto overflow-y-auto min-h-[280px] max-h-[50vh]">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-muted/60 border-b border-border">
@@ -370,7 +369,6 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
               <Plus className="h-4 w-4" /> Agregar {items.length > 1 ? `${items.length} ítems` : "pedido"}
             </Button>
           )}
-        </div>
         </div>
       </DialogContent>
     </Dialog>
