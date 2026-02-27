@@ -52,14 +52,23 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
   useEffect(() => {
     if (!open || !user) return;
     (async () => {
-      const { data } = await supabase
-        .from("catalog_products")
-        .select("titulo, tomo")
-        .eq("user_id", user.id)
-        .order("titulo");
-      if (data) {
-        setCatalogItems(data.map(d => ({ titulo: d.titulo, tomo: d.tomo })));
+      // Fetch all catalog items (may exceed 1000 default limit)
+      let all: CatalogSuggestion[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data } = await supabase
+          .from("catalog_products")
+          .select("titulo, tomo")
+          .eq("user_id", user.id)
+          .order("titulo")
+          .range(from, from + pageSize - 1);
+        if (!data || data.length === 0) break;
+        all = all.concat(data.map(d => ({ titulo: d.titulo, tomo: d.tomo })));
+        if (data.length < pageSize) break;
+        from += pageSize;
       }
+      setCatalogItems(all);
     })();
   }, [open, user]);
 
@@ -194,7 +203,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
           <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Agregar</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl w-[90vw] max-h-[85vh] overflow-y-auto resize overflow-auto" style={{ minWidth: 400, minHeight: 300 }}>
+      <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto p-4 sm:p-6" style={{ minWidth: 320 }}>
         <DialogHeader>
           <DialogTitle className="font-display text-xl">Nuevo Pedido</DialogTitle>
         </DialogHeader>
