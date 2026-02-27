@@ -132,7 +132,7 @@ export function OrdersTable({ orders, onEdit, onDelete, onBulkDelete, onBulkEdit
                       {selectedIds.has(order.id) && <Check className="h-3 w-3" />}
                     </button>
                   </td>
-                  <td className="p-3 font-medium max-w-[240px] truncate">{order.titulo}</td>
+                  <td className="p-3 font-medium max-w-[240px] break-words whitespace-normal">{order.titulo}</td>
                   <td className="p-3 text-right tabular-nums">
                     {fmt(order.precioVendido) || <span className="text-muted-foreground">—</span>}
                   </td>
