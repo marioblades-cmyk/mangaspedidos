@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Filter, BookOpen, Users, List, Loader2, Archive, LogOut, Shield, Eye, Library, Menu, Settings, X } from "lucide-react";
+import { AdminUsersPanel } from "@/components/AdminUsersPanel";
 import { Order, getStats } from "@/data/orders";
 import { useOrders } from "@/hooks/useOrders";
 import { useClientPayments } from "@/hooks/useClientPayments";
@@ -199,6 +200,7 @@ const Index = () => {
                   ))}
                 </select>
               )}
+              {role === "admin" && <AdminUsersPanel />}
               <button
                 onClick={() => navigate("/catalog")}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/80 transition-colors"
@@ -254,6 +256,7 @@ const Index = () => {
               </div>
             )}
             <div className="flex items-center gap-2">
+              {role === "admin" && <AdminUsersPanel />}
               <button
                 onClick={() => { navigate("/catalog"); setMobileMenuOpen(false); }}
                 className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-secondary text-secondary-foreground text-xs font-medium"
