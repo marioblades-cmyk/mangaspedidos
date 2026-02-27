@@ -287,16 +287,19 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
                               className="w-full min-w-[160px] px-1.5 py-1 rounded border border-border bg-card text-xs focus:outline-none focus:ring-1 focus:ring-primary/30"
                             />
                             {activeAutocomplete === idx && suggestions.length > 0 && (
-                              <div className="absolute z-50 top-full left-0 right-0 bg-card border border-border rounded-md shadow-lg max-h-40 overflow-y-auto">
-                                {suggestions.map((s, si) => (
-                                  <button
-                                    key={si}
-                                    onClick={() => selectSuggestion(idx, s)}
-                                    className="w-full text-left px-2 py-1.5 text-xs hover:bg-muted/50 truncate"
-                                  >
-                                    {s.titulo}{s.tomo ? ` ${s.tomo}` : ""}
-                                  </button>
-                                ))}
+                              <div ref={autocompleteRef} className="absolute z-[100] top-[calc(100%+4px)] left-0 min-w-[280px] w-max max-w-[400px] bg-card border border-border rounded-lg shadow-xl max-h-52 overflow-y-auto">
+                                <div className="py-1">
+                                  {suggestions.map((s, si) => (
+                                    <button
+                                      key={si}
+                                      onClick={() => selectSuggestion(idx, s)}
+                                      className="w-full text-left px-3 py-2 text-sm hover:bg-primary/10 transition-colors flex items-baseline gap-2 group"
+                                    >
+                                      <span className="font-medium text-foreground group-hover:text-primary transition-colors">{s.titulo}</span>
+                                      {s.tomo && <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{s.tomo}</span>}
+                                    </button>
+                                  ))}
+                                </div>
                               </div>
                             )}
                           </td>
