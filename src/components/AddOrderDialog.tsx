@@ -60,7 +60,6 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
         const { data } = await supabase
           .from("catalog_products")
           .select("titulo, tomo")
-          .eq("user_id", user.id)
           .order("titulo")
           .range(from, from + pageSize - 1);
         if (!data || data.length === 0) break;
@@ -214,7 +213,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
           <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Agregar</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[98vw] sm:w-[96vw] max-w-5xl max-h-[95vh] sm:max-h-[92vh] overflow-y-auto p-3 sm:p-5" style={{ minWidth: 280 }}>
+      <DialogContent className="w-[98vw] sm:w-[96vw] max-w-7xl max-h-[95vh] sm:max-h-[92vh] overflow-y-auto p-3 sm:p-5" style={{ minWidth: 280 }}>
         <DialogHeader>
           <DialogTitle className="font-display text-base sm:text-xl">Nuevo Pedido</DialogTitle>
         </DialogHeader>
