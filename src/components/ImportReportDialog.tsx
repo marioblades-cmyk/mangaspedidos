@@ -3,6 +3,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -60,6 +61,9 @@ export function ImportReportDialog({ report, open, onClose }: Props) {
             </div>
             Informe de Importación
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Resumen del resultado de importación con métricas, observaciones y errores del catálogo.
+          </DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="px-6 pb-6 max-h-[70vh]">
