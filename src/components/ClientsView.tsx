@@ -133,7 +133,7 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 origin-top-left scale-[0.62] sm:scale-100 w-[161%] sm:w-full">
       {clients.map(c => {
         const payments = getPaymentsForClient(c.numero);
         const dispatchable = getDispatchableCount(c.items);
