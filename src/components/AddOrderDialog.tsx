@@ -285,8 +285,72 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
                 </Button>
               </div>
 
-              <div className="border border-border rounded-lg overflow-visible origin-top-left scale-[0.72] sm:scale-100 w-[139%] sm:w-full">
-                <div className="overflow-x-auto overflow-y-auto min-h-[280px] max-h-[50vh]">
+              {/* Mobile: card layout */}
+              <div className="sm:hidden space-y-2 max-h-[55vh] overflow-y-auto">
+                {items.map((item, idx) => (
+                  <div key={idx} className="border border-border rounded-lg p-2.5 bg-card space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-semibold text-muted-foreground">#{idx + 1}</span>
+                      {items.length > 1 && (
+                        <button onClick={() => removeItem(idx)} className="text-destructive hover:text-destructive/80 p-0.5">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <input
+                        value={item.titulo}
+                        onChange={e => updateItem(idx, "titulo", e.target.value)}
+                        onFocus={() => { if (item.titulo.length >= 2) { updateItem(idx, "titulo", item.titulo); } }}
+                        placeholder="Título (buscar catálogo)"
+                        className="w-full px-2 py-1.5 rounded border border-border bg-card text-xs focus:outline-none focus:ring-1 focus:ring-primary/30"
+                      />
+                      {activeAutocomplete === idx && suggestions.length > 0 && (
+                        <div ref={autocompleteRef} className="absolute z-[100] top-[calc(100%+4px)] left-0 w-full bg-card border border-border rounded-lg shadow-xl max-h-52 overflow-y-auto">
+                          <div className="py-1">
+                            {suggestions.map((title, si) => (
+                              <button
+                                key={si}
+                                onClick={() => selectSuggestion(idx, title)}
+                                className="w-full text-left px-3 py-1.5 text-sm hover:bg-primary/10 transition-colors font-medium text-foreground hover:text-primary"
+                              >
+                                {title}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <input list={`estados-item-m-${idx}`} value={item.estado} onChange={e => updateItem(idx, "estado", e.target.value)} placeholder="Estado" className="w-full px-2 py-1.5 rounded border border-border bg-card text-xs focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                      <datalist id={`estados-item-m-${idx}`}>
+                        {estados.map(e => <option key={e} value={e} />)}
+                      </datalist>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 items-center">
+                      <div>
+                        <label className="text-[10px] text-muted-foreground">P.Vend</label>
+                        <input type="number" value={item.precioVendido} onChange={e => updateItem(idx, "precioVendido", e.target.value)} placeholder="0" className="w-full px-2 py-1.5 rounded border border-border bg-card text-xs tabular-nums focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground">Pago</label>
+                        <input type="number" value={item.pago} onChange={e => updateItem(idx, "pago", e.target.value)} placeholder="0" className="w-full px-2 py-1.5 rounded border border-border bg-card text-xs tabular-nums focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground">Saldo</label>
+                        <span className={`block px-2 py-1.5 rounded text-xs font-medium tabular-nums text-center ${getSaldo(item) > 0 ? "text-warning bg-warning/10" : "text-success bg-success/10"}`}>
+                          {getSaldo(item).toFixed(0)}
+                        </span>
+                      </div>
+                    </div>
+                    <input value={item.nota} onChange={e => updateItem(idx, "nota", e.target.value)} placeholder="Nota (opcional)" className="w-full px-2 py-1.5 rounded border border-border bg-card text-xs focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop: table layout */}
+              <div className="hidden sm:block border border-border rounded-lg">
+                <div className="overflow-x-auto overflow-y-auto max-h-[50vh]">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-muted/60 border-b border-border">
