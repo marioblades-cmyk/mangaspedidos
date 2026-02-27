@@ -166,6 +166,10 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
                   </span>
                 )}
                 <div className="text-right">
+                  <p className="text-[10px] text-muted-foreground">P.Vendido</p>
+                  <p className="text-xs tabular-nums font-medium">Bs {fmt(c.totalPrecio)}</p>
+                </div>
+                <div className="text-right">
                   <p className="text-[10px] text-muted-foreground">Deuda ítems</p>
                   <p className="text-xs tabular-nums text-muted-foreground">Bs {fmt(c.totalSaldo)}</p>
                 </div>
@@ -240,8 +244,6 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
                     <tr className="bg-muted/40 border-b border-border">
                       <th className="px-3 py-1.5 w-8"></th>
                       <th className="px-4 py-1.5 text-left text-xs font-semibold text-muted-foreground">Título</th>
-                      <th className="px-4 py-1.5 text-left text-xs font-semibold text-muted-foreground">Tipo</th>
-                      <th className="px-4 py-1.5 text-right text-xs font-semibold text-muted-foreground">P.Regular</th>
                       <th className="px-4 py-1.5 text-right text-xs font-semibold text-muted-foreground">P.Vendido</th>
                       <th className="px-4 py-1.5 text-right text-xs font-semibold text-muted-foreground">Pagado</th>
                       <th className="px-4 py-1.5 text-right text-xs font-semibold text-muted-foreground">Saldo</th>
@@ -266,10 +268,6 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
                           )}
                         </td>
                         <td className="px-4 py-2 font-medium truncate max-w-[200px]">{o.titulo}</td>
-                        <td className="px-4 py-2 text-xs">{o.tipo || '—'}</td>
-                        <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
-                          {o.precioRegular != null ? `Bs ${fmt(o.precioRegular)}` : '—'}
-                        </td>
                         <td className="px-4 py-2 text-right tabular-nums">
                           {o.precioVendido != null ? `Bs ${fmt(o.precioVendido)}` : '—'}
                         </td>
@@ -335,11 +333,12 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
                 )}
 
                 {/* Summary footer */}
-                <div className="border-t border-border px-4 py-2 bg-muted/30 flex items-center justify-between text-xs">
+                <div className="border-t border-border px-4 py-2 bg-muted/30 flex flex-wrap items-center justify-between text-xs gap-2">
                   <span className="text-muted-foreground">Resumen:</span>
-                  <div className="flex items-center gap-4">
-                    <span>Suma Total Pagada: <strong className="text-success">Bs {fmt(c.sumaTotalPagada)}</strong></span>
-                    <span>Deuda ítems: <strong className="text-warning">Bs {fmt(c.totalSaldo)}</strong></span>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span>P.Vendido: <strong>Bs {fmt(c.totalPrecio)}</strong></span>
+                    <span>Pagada: <strong className="text-success">Bs {fmt(c.sumaTotalPagada)}</strong></span>
+                    <span>Deuda: <strong className="text-warning">Bs {fmt(c.totalSaldo)}</strong></span>
                     {c.generalPaid > 0 && (
                       <span>Pagos grales: <strong className="text-primary">-Bs {fmt(c.generalPaid)}</strong></span>
                     )}

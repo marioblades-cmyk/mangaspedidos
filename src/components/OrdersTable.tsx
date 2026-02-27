@@ -46,22 +46,6 @@ function EstadoBadge({ estado, onAdvance }: { estado: string; onAdvance?: (next:
   );
 }
 
-function TipoBadge({ tipo }: { tipo: string }) {
-  if (!tipo) return null;
-  const styles: Record<string, string> = {
-    "PRE VENTA": "bg-accent/15 text-accent border-accent/20",
-    "RESERVA": "bg-primary/15 text-primary border-primary/20",
-    "CAMBIO": "bg-warning/15 text-warning border-warning/20",
-    "PEDIDO": "bg-info/15 text-info border-info/20",
-  };
-  const style = styles[tipo] || "bg-muted text-muted-foreground border-border";
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${style}`}>
-      {tipo}
-    </span>
-  );
-}
-
 interface OrdersTableProps {
   orders: Order[];
   onEdit?: (order: Order) => void;
@@ -132,7 +116,6 @@ export function OrdersTable({ orders, onEdit, onDelete, onBulkDelete, onBulkEdit
                   </button>
                 </th>
                 <th className="text-left p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider bg-card">Título</th>
-                <th className="text-left p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider bg-card">Tipo</th>
                 <th className="text-right p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider bg-card">Precio</th>
                 <th className="text-right p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider bg-card">Pago</th>
                 <th className="text-right p-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider bg-card">Saldo</th>
@@ -150,7 +133,6 @@ export function OrdersTable({ orders, onEdit, onDelete, onBulkDelete, onBulkEdit
                     </button>
                   </td>
                   <td className="p-3 font-medium max-w-[240px] truncate">{order.titulo}</td>
-                  <td className="p-3"><TipoBadge tipo={order.tipo} /></td>
                   <td className="p-3 text-right tabular-nums">
                     {fmt(order.precioVendido) || <span className="text-muted-foreground">—</span>}
                   </td>

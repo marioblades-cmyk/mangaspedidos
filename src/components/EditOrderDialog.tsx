@@ -58,27 +58,11 @@ export function EditOrderDialog({ order, open, onClose, onSave, estados, decimal
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelClass}>Tipo</label>
-              <select value={form.tipo} onChange={e => update("tipo", e.target.value)} className={inputClass}>
-                <option value="">—</option>
-                <option value="PRE VENTA">PRE VENTA</option>
-                <option value="RESERVA">RESERVA</option>
-                <option value="CAMBIO">CAMBIO</option>
-                <option value="PEDIDO">PEDIDO</option>
-              </select>
-            </div>
-            <div>
               <label className={labelClass}>Estado</label>
               <input list="estados-list-edit" value={form.estado} onChange={e => update("estado", e.target.value)} placeholder="Ej: PEDIDO 10" className={inputClass} />
               <datalist id="estados-list-edit">
                 {estados.map(e => <option key={e} value={e} />)}
               </datalist>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass}>Precio Regular</label>
-              <input type="number" value={form.precioRegular ?? ""} onChange={e => update("precioRegular", e.target.value)} className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>Precio Vendido</label>

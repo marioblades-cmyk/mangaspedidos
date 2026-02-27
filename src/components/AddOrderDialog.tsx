@@ -1,21 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, BookCopy } from "lucide-react";
 import { Order } from "@/data/orders";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+
+interface CatalogSuggestion {
+  titulo: string;
+  tomo: string;
+}
 
 interface OrderItem {
   titulo: string;
-  tipo: string;
   precioVendido: string;
-  precioRegular: string;
   pago: string;
   nota: string;
   estado: string;
 }
 
 const emptyItem = (): OrderItem => ({
-  titulo: "", tipo: "", precioVendido: "", precioRegular: "", pago: "", nota: "", estado: "",
+  titulo: "", precioVendido: "", pago: "", nota: "", estado: "",
 });
 
 interface AddOrderDialogProps {
@@ -24,6 +29,7 @@ interface AddOrderDialogProps {
 }
 
 export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [cliente, setCliente] = useState("");
   const [estado, setEstado] = useState("");
@@ -32,14 +38,64 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
   // Collection mode state
   const [colName, setColName] = useState("");
   const [colVolumes, setColVolumes] = useState("");
-  const [colTipo, setColTipo] = useState("");
   const [colPrecio, setColPrecio] = useState("");
-  const [colPrecioRegular, setColPrecioRegular] = useState("");
   const [colPago, setColPago] = useState("");
   const [colNota, setColNota] = useState("");
 
+  // Catalog autocomplete
+  const [catalogItems, setCatalogItems] = useState<CatalogSuggestion[]>([]);
+  const [activeAutocomplete, setActiveAutocomplete] = useState<number | null>(null);
+  const [suggestions, setSuggestions] = useState<CatalogSuggestion[]>([]);
+  const autocompleteRef = useRef<HTMLDivElement>(null);
+
+  // Load catalog titles on open
+  useEffect(() => {
+    if (!open || !user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("catalog_products")
+        .select("titulo, tomo")
+        .eq("user_id", user.id)
+        .order("titulo");
+      if (data) {
+        setCatalogItems(data.map(d => ({ titulo: d.titulo, tomo: d.tomo })));
+      }
+    })();
+  }, [open, user]);
+
+  // Close autocomplete on click outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (autocompleteRef.current && !autocompleteRef.current.contains(e.target as Node)) {
+        setActiveAutocomplete(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   const updateItem = (idx: number, field: keyof OrderItem, value: string) => {
     setItems(prev => prev.map((it, i) => i === idx ? { ...it, [field]: value } : it));
+    if (field === "titulo") {
+      if (value.length >= 2) {
+        const lower = value.toLowerCase();
+        const matches = catalogItems
+          .filter(c => c.titulo.toLowerCase().includes(lower))
+          .slice(0, 8);
+        setSuggestions(matches);
+        setActiveAutocomplete(idx);
+      } else {
+        setSuggestions([]);
+        setActiveAutocomplete(null);
+      }
+    }
+  };
+
+  const selectSuggestion = (idx: number, suggestion: CatalogSuggestion) => {
+    const fullTitle = suggestion.tomo ? `${suggestion.titulo} ${suggestion.tomo}` : suggestion.titulo;
+    setItems(prev => prev.map((it, i) => i === idx ? { ...it, titulo: fullTitle } : it));
+    setActiveAutocomplete(null);
+    setSuggestions([]);
   };
 
   const removeItem = (idx: number) => {
@@ -77,9 +133,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
     const volumes = expandVolumes(colVolumes);
     const generated: OrderItem[] = volumes.map(vol => ({
       titulo: `${colName.trim()} ${vol}`,
-      tipo: colTipo,
       precioVendido: colPrecio,
-      precioRegular: colPrecioRegular,
       pago: colPago,
       nota: colNota,
       estado: estado,
@@ -88,7 +142,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
       const existing = prev.filter(it => it.titulo.trim() !== "");
       return [...existing, ...generated];
     });
-    setMode("manual"); // switch to manual so user can edit each
+    setMode("manual");
   };
 
   const handleSubmit = () => {
@@ -96,9 +150,9 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
       .filter(it => it.titulo.trim())
       .map(it => ({
         titulo: it.titulo.trim(),
-        tipo: it.tipo,
+        tipo: "",
         precioVendido: it.precioVendido ? parseFloat(it.precioVendido) : null,
-        precioRegular: it.precioRegular ? parseFloat(it.precioRegular) : null,
+        precioRegular: null,
         pago: it.pago ? parseFloat(it.pago) : 0,
         saldo: it.precioVendido ? getSaldo(it) : null,
         numero: cliente,
@@ -117,9 +171,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
     setMode("manual");
     setColName("");
     setColVolumes("");
-    setColTipo("");
     setColPrecio("");
-    setColPrecioRegular("");
     setColPago("");
     setColNota("");
     setOpen(false);
@@ -131,8 +183,8 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); else setOpen(true); }}>
       <DialogTrigger asChild>
-        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
-          <Plus className="h-4 w-4" /> Agregar Pedido
+        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2" size="sm">
+          <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Agregar</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl w-[90vw] max-h-[85vh] overflow-y-auto resize overflow-auto" style={{ minWidth: 400, minHeight: 300 }}>
@@ -141,7 +193,6 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
         </DialogHeader>
 
         <div className="space-y-4 mt-2">
-          {/* Client & Estado shared fields */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Cliente (Número)</label>
@@ -156,7 +207,6 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
             </div>
           </div>
 
-          {/* Mode toggle */}
           <div className="flex items-center bg-muted rounded-lg p-0.5">
             <button onClick={() => setMode("manual")} className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center justify-center gap-1.5 ${mode === "manual" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
               <Plus className="h-3.5 w-3.5" /> Manual
@@ -178,20 +228,6 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
                   <label className={labelClass}>Tomos (separados por coma)</label>
                   <input value={colVolumes} onChange={e => setColVolumes(e.target.value)} placeholder="Ej: 1-5,7,9-13" className={inputClass} />
                   <p className="text-[10px] text-muted-foreground mt-1">Usa comas para separar y guión para rangos (1-13 = del 1 al 13)</p>
-                </div>
-                <div>
-                  <label className={labelClass}>Tipo</label>
-                  <select value={colTipo} onChange={e => setColTipo(e.target.value)} className={inputClass}>
-                    <option value="">—</option>
-                    <option value="PRE VENTA">PRE VENTA</option>
-                    <option value="RESERVA">RESERVA</option>
-                    <option value="CAMBIO">CAMBIO</option>
-                    <option value="PEDIDO">PEDIDO</option>
-                  </select>
-                </div>
-                <div>
-                  <label className={labelClass}>Precio Regular</label>
-                  <input type="number" value={colPrecioRegular} onChange={e => setColPrecioRegular(e.target.value)} placeholder="0.00" className={inputClass} />
                 </div>
                 <div>
                   <label className={labelClass}>Precio Vendido</label>
@@ -230,9 +266,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
                       <tr className="bg-muted/60 border-b border-border">
                         <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground">#</th>
                         <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground">Título</th>
-                        <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground">Tipo</th>
                         <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground">Estado</th>
-                        <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground">P.Reg</th>
                         <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground">P.Vend</th>
                         <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground">Pago</th>
                         <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground">Saldo</th>
@@ -244,26 +278,33 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
                       {items.map((item, idx) => (
                         <tr key={idx} className="border-b border-border/50 last:border-0 hover:bg-muted/30">
                           <td className="px-2 py-1.5 text-muted-foreground">{idx + 1}</td>
-                          <td className="px-1 py-1">
-                            <input value={item.titulo} onChange={e => updateItem(idx, "titulo", e.target.value)} placeholder="Título" className="w-full min-w-[120px] px-1.5 py-1 rounded border border-border bg-card text-xs focus:outline-none focus:ring-1 focus:ring-primary/30" />
-                          </td>
-                          <td className="px-1 py-1">
-                            <select value={item.tipo} onChange={e => updateItem(idx, "tipo", e.target.value)} className="w-full min-w-[80px] px-1 py-1 rounded border border-border bg-card text-xs focus:outline-none focus:ring-1 focus:ring-primary/30">
-                              <option value="">—</option>
-                              <option value="PRE VENTA">PRE VENTA</option>
-                              <option value="RESERVA">RESERVA</option>
-                              <option value="CAMBIO">CAMBIO</option>
-                              <option value="PEDIDO">PEDIDO</option>
-                            </select>
+                          <td className="px-1 py-1 relative">
+                            <input
+                              value={item.titulo}
+                              onChange={e => updateItem(idx, "titulo", e.target.value)}
+                              onFocus={() => { if (item.titulo.length >= 2) { updateItem(idx, "titulo", item.titulo); } }}
+                              placeholder="Título (buscar catálogo)"
+                              className="w-full min-w-[160px] px-1.5 py-1 rounded border border-border bg-card text-xs focus:outline-none focus:ring-1 focus:ring-primary/30"
+                            />
+                            {activeAutocomplete === idx && suggestions.length > 0 && (
+                              <div className="absolute z-50 top-full left-0 right-0 bg-card border border-border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                                {suggestions.map((s, si) => (
+                                  <button
+                                    key={si}
+                                    onClick={() => selectSuggestion(idx, s)}
+                                    className="w-full text-left px-2 py-1.5 text-xs hover:bg-muted/50 truncate"
+                                  >
+                                    {s.titulo}{s.tomo ? ` ${s.tomo}` : ""}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </td>
                           <td className="px-1 py-1">
                             <input list={`estados-item-${idx}`} value={item.estado} onChange={e => updateItem(idx, "estado", e.target.value)} placeholder="Estado" className="w-full min-w-[80px] px-1.5 py-1 rounded border border-border bg-card text-xs focus:outline-none focus:ring-1 focus:ring-primary/30" />
                             <datalist id={`estados-item-${idx}`}>
                               {estados.map(e => <option key={e} value={e} />)}
                             </datalist>
-                          </td>
-                          <td className="px-1 py-1">
-                            <input type="number" value={item.precioRegular} onChange={e => updateItem(idx, "precioRegular", e.target.value)} placeholder="0" className="w-full min-w-[55px] px-1.5 py-1 rounded border border-border bg-card text-xs tabular-nums focus:outline-none focus:ring-1 focus:ring-primary/30" />
                           </td>
                           <td className="px-1 py-1">
                             <input type="number" value={item.precioVendido} onChange={e => updateItem(idx, "precioVendido", e.target.value)} placeholder="0" className="w-full min-w-[55px] px-1.5 py-1 rounded border border-border bg-card text-xs tabular-nums focus:outline-none focus:ring-1 focus:ring-primary/30" />

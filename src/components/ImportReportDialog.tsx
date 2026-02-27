@@ -91,6 +91,24 @@ export function ImportReportDialog({ report, open, onClose }: Props) {
               </Section>
             )}
 
+            {/* Category changes */}
+            {report.categoryChanges && report.categoryChanges.length > 0 && (
+              <Section title={`Cambios de categoría (${report.categoryChanges.length})`}>
+                <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                  {report.categoryChanges.map((c, i) => (
+                    <div key={i} className="text-xs space-y-0.5">
+                      <span className="font-medium truncate block">{c.title}</span>
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="outline" className="text-[9px]">{c.oldCategory}</Badge>
+                        <ArrowRight className="h-3 w-3 text-primary shrink-0" />
+                        <Badge variant="outline" className="text-[9px] bg-primary/10 text-primary border-primary/30">{c.newCategory}</Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Section>
+            )}
+
             {/* Reimpresion matches */}
             {report.reimpresionMatches.length > 0 && (
               <Section title={`Reimpresiones (${report.reimpresionMatches.length})`}>

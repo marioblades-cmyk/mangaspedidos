@@ -104,6 +104,7 @@ export function importExcel(
     noValidIsbn: [],
     noPrice: [],
     reimpresionMatches: [],
+    categoryChanges: [],
     errors: [],
   };
 
@@ -231,6 +232,14 @@ export function importExcel(
     const match = matchByTitle || matchByIsbn;
 
     if (match) {
+      // Track category changes
+      if (match.category !== item.category) {
+        report.categoryChanges.push({
+          title: item.title,
+          oldCategory: match.category,
+          newCategory: item.category,
+        });
+      }
       mergedMap.set(match.id, {
         ...match,
         title: item.title,
