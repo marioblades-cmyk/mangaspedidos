@@ -284,7 +284,7 @@ const Index = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        <StatsRow stats={stats} decimals={decimals} />
+        {/* Stats cards hidden for now */}
 
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
