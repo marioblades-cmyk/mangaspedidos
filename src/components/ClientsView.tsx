@@ -267,7 +267,7 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
                             <Send className="h-3.5 w-3.5 text-muted-foreground" />
                           )}
                         </td>
-                        <td className="px-4 py-2 font-medium truncate max-w-[200px]">{o.titulo}</td>
+                        <td className="px-4 py-2 font-medium break-words whitespace-normal max-w-[200px]">{o.titulo}</td>
                         <td className="px-4 py-2 text-right tabular-nums">
                           {o.precioVendido != null ? `Bs ${fmt(o.precioVendido)}` : '—'}
                         </td>
@@ -296,7 +296,7 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
                           Bs {fmt(o.saldo ?? 0)}
                         </td>
                         <td className="px-4 py-2 text-xs text-muted-foreground">{o.estado || '—'}</td>
-                        <td className="px-4 py-2 text-xs text-muted-foreground truncate max-w-[120px]">{o.nota || '—'}</td>
+                        <td className="px-4 py-2 text-xs text-muted-foreground break-words whitespace-normal max-w-[120px]">{o.nota || '—'}</td>
                       </tr>
                     ))}
                   </tbody>
