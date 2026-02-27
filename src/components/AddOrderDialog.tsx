@@ -213,7 +213,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
           <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Agregar</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[98vw] sm:w-[96vw] lg:w-[98vw] max-w-[1600px] max-h-[95vh] sm:max-h-[92vh] overflow-y-auto p-3 sm:p-5" style={{ minWidth: 280 }}>
+      <DialogContent className="w-[98vw] sm:w-[98vw] lg:w-[99vw] max-w-[1800px] max-h-[96vh] sm:max-h-[95vh] overflow-y-auto p-3 sm:p-5" style={{ minWidth: 280 }}>
         <DialogHeader>
           <DialogTitle className="font-display text-base sm:text-xl">Nuevo Pedido</DialogTitle>
         </DialogHeader>
@@ -349,7 +349,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
 
               {/* Desktop: table layout */}
               <div className="hidden sm:block border border-border rounded-lg">
-                <div className="overflow-x-auto overflow-y-auto max-h-[50vh]">
+                <div className="overflow-x-auto overflow-y-auto max-h-[65vh]">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-muted/60 border-b border-border">
