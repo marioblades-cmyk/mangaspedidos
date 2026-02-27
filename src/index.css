@@ -78,4 +78,8 @@
   .glow-warning {
     box-shadow: 0 0 12px hsl(40 95% 50% / 0.1);
   }
+  .fade-in-row {
+    opacity: 0;
+    animation: fade-in 0.4s ease-out forwards;
+  }
 }
