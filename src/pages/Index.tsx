@@ -184,7 +184,7 @@ const Index = () => {
             {!isSupervising && <AddOrderDialog onAdd={addOrders} estados={estados} />}
 
             {/* Desktop-only actions */}
-            <div className="hidden md:flex items-center gap-1.5">
+            <div className="hidden lg:flex items-center gap-1.5">
               {role === "admin" && (
                 <select
                   value={viewAsUserId || user?.id || ""}
@@ -228,7 +228,7 @@ const Index = () => {
             {/* Mobile hamburger */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-md hover:bg-muted text-muted-foreground"
+              className="lg:hidden p-2 rounded-md hover:bg-muted text-muted-foreground"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -237,7 +237,7 @@ const Index = () => {
 
         {/* Mobile dropdown menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-border bg-card px-4 py-3 space-y-3 animate-in slide-in-from-top-2 duration-200">
+          <div className="lg:hidden border-t border-border bg-card px-4 py-3 space-y-3 animate-in slide-in-from-top-2 duration-200">
             {role === "admin" && (
               <div>
                 <label className="text-[10px] font-semibold text-muted-foreground uppercase">Supervisar usuario</label>
