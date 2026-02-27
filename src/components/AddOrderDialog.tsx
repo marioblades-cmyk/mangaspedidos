@@ -88,17 +88,28 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
     if (field === "titulo") {
       if (value.length >= 2) {
         const lower = value.toLowerCase();
-        // Deduplicate by titulo (ignore tomo), show unique titles only
         const seen = new Set<string>();
         const matches: string[] = [];
+
+        const addCandidate = (candidate: string) => {
+          const clean = candidate.trim();
+          const key = clean.toLowerCase();
+          if (!clean || seen.has(key) || !key.includes(lower)) return;
+          seen.add(key);
+          matches.push(clean);
+        };
+
         for (const c of catalogItems) {
-          const t = c.titulo.toLowerCase();
-          if (t.includes(lower) && !seen.has(t)) {
-            seen.add(t);
-            matches.push(c.titulo);
-            if (matches.length >= 15) break;
-          }
+          const fullTitle = c.titulo;
+          const baseTitle = fullTitle.split(":")[0]?.trim() ?? "";
+
+          // Show generic/base option first, then full title
+          if (baseTitle && baseTitle !== fullTitle) addCandidate(baseTitle);
+          addCandidate(fullTitle);
+
+          if (matches.length >= 20) break;
         }
+
         setSuggestions(matches);
         setActiveAutocomplete(idx);
       } else {
@@ -203,7 +214,7 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
           <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Agregar</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto p-4 sm:p-6" style={{ minWidth: 320 }}>
+      <DialogContent className="w-[96vw] max-w-5xl max-h-[92vh] overflow-y-auto p-4 sm:p-5" style={{ minWidth: 320, minHeight: 520 }}>
         <DialogHeader>
           <DialogTitle className="font-display text-xl">Nuevo Pedido</DialogTitle>
         </DialogHeader>
@@ -274,8 +285,8 @@ export function AddOrderDialog({ onAdd, estados }: AddOrderDialogProps) {
                 </Button>
               </div>
 
-              <div className="border border-border rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
+              <div className="border border-border rounded-lg overflow-visible">
+                <div className="overflow-x-auto overflow-y-auto min-h-[230px] max-h-[45vh]">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-muted/60 border-b border-border">
