@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
-import { Search, Filter, BookOpen, Users, List, Loader2, Archive, LogOut, Shield, Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Search, Filter, BookOpen, Users, List, Loader2, Archive, LogOut, Shield, Eye, Library } from "lucide-react";
 import { Order, getStats } from "@/data/orders";
 import { useOrders } from "@/hooks/useOrders";
 import { useClientPayments } from "@/hooks/useClientPayments";
@@ -16,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
+  const navigate = useNavigate();
   const { user, role, signOut } = useAuth();
   const {
     orders, loading, estados,
@@ -206,6 +208,13 @@ const Index = () => {
               </select>
             </div>
             {!isSupervising && <AddOrderDialog onAdd={addOrders} estados={estados} />}
+            <button
+              onClick={() => navigate("/catalog")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/80 transition-colors"
+              title="Catálogo Entelequia"
+            >
+              <Library className="h-3.5 w-3.5" /> Catálogo
+            </button>
             <button
               onClick={signOut}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20 transition-colors"
