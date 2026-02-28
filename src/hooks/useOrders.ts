@@ -70,13 +70,21 @@ export function useOrders() {
   }, [showError, user]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
+    let cancelled = false;
     (async () => {
       setLoading(true);
-      const fetched = await fetchOrders();
-      setOrders(fetched);
-      setLoading(false);
+      try {
+        const fetched = await fetchOrders();
+        if (!cancelled) setOrders(fetched);
+      } catch (e) {
+        console.error("Error cargando pedidos:", e);
+        if (!cancelled) showError("Error de conexión al cargar pedidos");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
+    return () => { cancelled = true; };
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addOrders = useCallback(async (newOrders: Omit<Order, "id">[]) => {
