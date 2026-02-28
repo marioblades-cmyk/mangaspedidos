@@ -331,8 +331,6 @@ const Index = () => {
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
             decimals={decimals}
-            clientPayments={activePayments as any[]}
-            getClientPaidTotal={supervisedGetClientPaidTotal}
           />
         ) : (
           <ClientsView
