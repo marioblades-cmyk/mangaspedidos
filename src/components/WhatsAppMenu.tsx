@@ -56,11 +56,17 @@ export function WhatsAppMenu({ numero, items, clientPayments, generalPaid, saldo
   };
 
   const waUrl = (msg: string) => `whatsapp://send?phone=${phone}&text=${encodeURIComponent(msg)}`;
+  const openWhatsApp = (msg: string) => {
+    window.open(waUrl(msg), "wa_business_window", "noopener,noreferrer");
+    setOpen(false);
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
+          type="button"
+          onClick={(e) => e.stopPropagation()}
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-[hsl(142,70%,45%)] text-white text-xs font-medium hover:bg-[hsl(142,70%,40%)] transition-colors"
           title="Enviar mensaje por WhatsApp"
         >
@@ -73,19 +79,20 @@ export function WhatsAppMenu({ numero, items, clientPayments, generalPaid, saldo
         </div>
         <div className="p-1.5 space-y-1">
           {allSeparados ? (
-            <a
-              href={waUrl(buildAviso())}
-              target="wa_business_window"
-              rel="noopener"
-              onClick={() => setOpen(false)}
-              className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left hover:bg-muted/50 transition-colors no-underline text-foreground"
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                openWhatsApp(buildAviso());
+              }}
+              className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left hover:bg-muted/50 transition-colors text-foreground"
             >
               <Send className="h-4 w-4 text-success mt-0.5 shrink-0" />
               <div>
                 <p className="text-xs font-medium">Aviso de Entrega</p>
                 <p className="text-[10px] text-muted-foreground">{separados.length} ítem(s) listos</p>
               </div>
-            </a>
+            </button>
           ) : (
             <div className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left opacity-40 cursor-not-allowed">
               <Send className="h-4 w-4 text-success mt-0.5 shrink-0" />
@@ -96,19 +103,20 @@ export function WhatsAppMenu({ numero, items, clientPayments, generalPaid, saldo
             </div>
           )}
           {hasGeneralPayments ? (
-            <a
-              href={waUrl(buildConfirmacion())}
-              target="wa_business_window"
-              rel="noopener"
-              onClick={() => setOpen(false)}
-              className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left hover:bg-muted/50 transition-colors no-underline text-foreground"
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                openWhatsApp(buildConfirmacion());
+              }}
+              className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left hover:bg-muted/50 transition-colors text-foreground"
             >
               <DollarSign className="h-4 w-4 text-primary mt-0.5 shrink-0" />
               <div>
                 <p className="text-xs font-medium">Confirmación de Pago</p>
                 <p className="text-[10px] text-muted-foreground">Último: Bs {fmt(lastPayment!.monto)}</p>
               </div>
-            </a>
+            </button>
           ) : (
             <div className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left opacity-40 cursor-not-allowed">
               <DollarSign className="h-4 w-4 text-primary mt-0.5 shrink-0" />
@@ -118,19 +126,20 @@ export function WhatsAppMenu({ numero, items, clientPayments, generalPaid, saldo
               </div>
             </div>
           )}
-          <a
-            href={waUrl(buildGeneral())}
-            target="wa_business_window"
-            rel="noopener"
-            onClick={() => setOpen(false)}
-            className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left hover:bg-muted/50 transition-colors no-underline text-foreground"
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              openWhatsApp(buildGeneral());
+            }}
+            className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left hover:bg-muted/50 transition-colors text-foreground"
           >
             <FileText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
             <div>
               <p className="text-xs font-medium">Estado General</p>
               <p className="text-[10px] text-muted-foreground">Resumen completo del cliente</p>
             </div>
-          </a>
+          </button>
         </div>
       </PopoverContent>
     </Popover>
