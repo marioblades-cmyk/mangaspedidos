@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { Order } from "@/data/orders";
 import { Pencil, Trash2, ChevronRight, Check } from "lucide-react";
+import { WhatsAppMenu } from "@/components/WhatsAppMenu";
 
 function getNextEstado(estado: string): string | null {
   const pedidoMatch = estado.match(/^PEDIDO\s+(.+)$/i);
@@ -56,13 +58,68 @@ interface OrdersTableProps {
   selectedIds: Set<number>;
   onSelectionChange: (ids: Set<number>) => void;
   decimals: number;
+  clientPayments?: Array<{ id: number; numero: string; monto: number; nota: string; created_at: string }>;
+  getClientPaidTotal?: (numero: string) => number;
 }
 
-export function OrdersTable({ orders, onEdit, onDelete, onBulkDelete, onBulkEdit, onUpdateEstado, selectedIds, onSelectionChange, decimals }: OrdersTableProps) {
+export function OrdersTable({ orders, onEdit, onDelete, onBulkDelete, onBulkEdit, onUpdateEstado, selectedIds, onSelectionChange, decimals, clientPayments = [], getClientPaidTotal }: OrdersTableProps) {
   const allSelected = orders.length > 0 && orders.every(o => selectedIds.has(o.id));
   const someSelected = orders.some(o => selectedIds.has(o.id));
 
   const fmt = (v: number | null) => v != null ? `Bs ${v.toFixed(decimals)}` : null;
+
+  const clientContextByNumero = useMemo(() => {
+    const ordersMap = new Map<string, Order[]>();
+    const paymentsMap = new Map<string, Array<{ id: number; numero: string; monto: number; nota: string; created_at: string }>>();
+
+    orders.forEach((order) => {
+      const numero = order.numero?.trim();
+      if (!numero) return;
+      const current = ordersMap.get(numero) || [];
+      current.push(order);
+      ordersMap.set(numero, current);
+    });
+
+    clientPayments.forEach((payment) => {
+      const numero = payment.numero?.trim();
+      if (!numero) return;
+      const current = paymentsMap.get(numero) || [];
+      current.push(payment);
+      paymentsMap.set(numero, current);
+    });
+
+    const result = new Map<string, { items: Order[]; payments: Array<{ id: number; numero: string; monto: number; nota: string; created_at: string }>; generalPaid: number; saldoAjustado: number }>();
+
+    ordersMap.forEach((items, numero) => {
+      const payments = paymentsMap.get(numero) || [];
+      const totalSaldo = items.reduce((sum, item) => sum + (item.saldo ?? 0), 0);
+      const calculatedGeneralPaid = payments.reduce((sum, payment) => sum + payment.monto, 0);
+      const generalPaid = getClientPaidTotal ? getClientPaidTotal(numero) : calculatedGeneralPaid;
+
+      result.set(numero, {
+        items,
+        payments,
+        generalPaid,
+        saldoAjustado: Math.max(0, totalSaldo - generalPaid),
+      });
+    });
+
+    return result;
+  }, [orders, clientPayments, getClientPaidTotal]);
+
+  const firstOrderIdsByClient = useMemo(() => {
+    const seen = new Set<string>();
+    const firstIds = new Set<number>();
+
+    orders.forEach((order) => {
+      const numero = order.numero?.trim();
+      if (!numero || seen.has(numero)) return;
+      seen.add(numero);
+      firstIds.add(order.id);
+    });
+
+    return firstIds;
+  }, [orders]);
 
   const toggleAll = () => {
     if (allSelected) onSelectionChange(new Set());
@@ -125,43 +182,59 @@ export function OrdersTable({ orders, onEdit, onDelete, onBulkDelete, onBulkEdit
               </tr>
             </thead>
             <tbody>
-              {orders.map((order) => (
-                <tr key={order.id} className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${selectedIds.has(order.id) ? 'bg-primary/5' : ''}`}>
-                  <td className="p-3">
-                    <button onClick={() => toggleOne(order.id)} className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${selectedIds.has(order.id) ? 'bg-primary border-primary text-primary-foreground' : 'border-border hover:border-muted-foreground'}`}>
-                      {selectedIds.has(order.id) && <Check className="h-3 w-3" />}
-                    </button>
-                  </td>
-                  <td className="p-3 font-medium max-w-[240px] break-words whitespace-normal">{order.titulo}</td>
-                  <td className="p-3 text-right tabular-nums">
-                    {fmt(order.precioVendido) || <span className="text-muted-foreground">—</span>}
-                  </td>
-                  <td className="p-3 text-right tabular-nums">
-                    {fmt(order.pago) || <span className="text-muted-foreground">—</span>}
-                  </td>
-                  <td className={`p-3 text-right tabular-nums font-medium ${(order.saldo ?? 0) > 0 ? 'text-warning' : 'text-success'}`}>
-                    {fmt(order.saldo) || <span className="text-muted-foreground">—</span>}
-                  </td>
-                  <td className="p-3 text-muted-foreground font-mono text-xs">{order.numero || "—"}</td>
-                  <td className="p-3">
-                    <EstadoBadge estado={order.estado} onAdvance={onUpdateEstado ? (next) => onUpdateEstado(order.id, next) : undefined} />
-                  </td>
-                  <td className="p-3">
-                    <div className="flex items-center justify-center gap-1">
-                      {onEdit && (
-                        <button onClick={() => onEdit(order)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Editar">
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                      {onDelete && (
-                        <button onClick={() => onDelete(order.id)} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Eliminar">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {orders.map((order) => {
+                const numero = order.numero?.trim();
+                const whatsappContext = numero ? clientContextByNumero.get(numero) : undefined;
+                const showWhatsAppMenu = Boolean(numero && whatsappContext && firstOrderIdsByClient.has(order.id));
+
+                return (
+                  <tr key={order.id} className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${selectedIds.has(order.id) ? 'bg-primary/5' : ''}`}>
+                    <td className="p-3">
+                      <button onClick={() => toggleOne(order.id)} className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${selectedIds.has(order.id) ? 'bg-primary border-primary text-primary-foreground' : 'border-border hover:border-muted-foreground'}`}>
+                        {selectedIds.has(order.id) && <Check className="h-3 w-3" />}
+                      </button>
+                    </td>
+                    <td className="p-3 font-medium max-w-[240px] break-words whitespace-normal">{order.titulo}</td>
+                    <td className="p-3 text-right tabular-nums">
+                      {fmt(order.precioVendido) || <span className="text-muted-foreground">—</span>}
+                    </td>
+                    <td className="p-3 text-right tabular-nums">
+                      {fmt(order.pago) || <span className="text-muted-foreground">—</span>}
+                    </td>
+                    <td className={`p-3 text-right tabular-nums font-medium ${(order.saldo ?? 0) > 0 ? 'text-warning' : 'text-success'}`}>
+                      {fmt(order.saldo) || <span className="text-muted-foreground">—</span>}
+                    </td>
+                    <td className="p-3 text-muted-foreground font-mono text-xs">{order.numero || "—"}</td>
+                    <td className="p-3">
+                      <EstadoBadge estado={order.estado} onAdvance={onUpdateEstado ? (next) => onUpdateEstado(order.id, next) : undefined} />
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center justify-center gap-1">
+                        {showWhatsAppMenu && whatsappContext && (
+                          <WhatsAppMenu
+                            numero={numero!}
+                            items={whatsappContext.items}
+                            clientPayments={whatsappContext.payments}
+                            generalPaid={whatsappContext.generalPaid}
+                            saldoAjustado={whatsappContext.saldoAjustado}
+                            decimals={decimals}
+                          />
+                        )}
+                        {onEdit && (
+                          <button onClick={() => onEdit(order)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Editar">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        {onDelete && (
+                          <button onClick={() => onDelete(order.id)} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Eliminar">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
