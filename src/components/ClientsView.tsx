@@ -142,7 +142,7 @@ export function ClientsView({ orders, onPayClient, decimals, onUpdatePayment, cl
         const separadoItems = c.items.filter(o => (o.estado || "").toUpperCase().includes("SEPARADO"));
         const allSeparadoSelected = separadoItems.length > 0 && separadoItems.every(o => selectedItems.has(o.id));
         return (
-          <div key={c.numero} className={`rounded-lg border border-border bg-card overflow-hidden ${c.allEnviado ? 'opacity-50' : ''}`}>
+          <div key={c.numero} className={`rounded-lg border border-border bg-card overflow-visible ${c.allEnviado ? 'opacity-50' : ''}`}>
             <div
               className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
               onClick={() => toggle(c.numero)}
