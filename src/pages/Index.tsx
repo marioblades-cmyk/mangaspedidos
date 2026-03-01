@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Filter, BookOpen, Users, List, Loader2, Archive, LogOut, Shield, Eye, Library, Menu, Settings, X } from "lucide-react";
+import { Search, Filter, BookOpen, Users, List, Loader2, Archive, LogOut, Shield, Eye, Library, Menu, X } from "lucide-react";
 import { AdminUsersPanel } from "@/components/AdminUsersPanel";
 import { Order, getStats } from "@/data/orders";
 import { useOrders } from "@/hooks/useOrders";
@@ -79,10 +79,10 @@ const Index = () => {
   const activeOrders = isSupervising && supervisedOrders ? supervisedOrders : orders;
   const activePayments = isSupervising && supervisedPayments ? supervisedPayments : clientPayments;
 
-  const supervisedGetClientPaidTotal = (numero: string) => {
+  const supervisedGetClientPaidTotal = useCallback((numero: string) => {
     if (!isSupervising || !supervisedPayments) return getClientPaidTotal(numero);
     return supervisedPayments.filter((p: any) => p.numero === numero).reduce((s: number, p: any) => s + p.monto, 0);
-  };
+  }, [isSupervising, supervisedPayments, getClientPaidTotal]);
 
   const supervisedUser = allUsers.find(u => u.user_id === viewAsUserId);
 
@@ -97,37 +97,37 @@ const Index = () => {
 
   const stats = useMemo(() => getStats(filtered), [filtered]);
 
-  const handleDelete = (id: number) => {
+  const handleDelete = useCallback((id: number) => {
     if (window.confirm("¿Eliminar este pedido?")) deleteOrder(id);
-  };
+  }, [deleteOrder]);
 
-  const handleBulkDelete = (ids: number[]) => {
+  const handleBulkDelete = useCallback((ids: number[]) => {
     if (window.confirm(`¿Eliminar ${ids.length} pedido(s)?`)) {
       deleteMany(ids);
       setSelectedIds(new Set());
     }
-  };
+  }, [deleteMany]);
 
-  const handleUpdateEstado = (id: number, estado: string) => {
+  const handleUpdateEstado = useCallback((id: number, estado: string) => {
     const order = activeOrders.find(o => o.id === id);
     if (order) setEstadoOrder(order);
-  };
+  }, [activeOrders]);
 
-  const handleEstadoConfirm = (id: number, estado: string) => {
+  const handleEstadoConfirm = useCallback((id: number, estado: string) => {
     updateEstado(id, estado);
-  };
+  }, [updateEstado]);
 
-  const handleBulkEdit = (changes: { estado?: string; tipo?: string }) => {
+  const handleBulkEdit = useCallback((changes: { estado?: string; tipo?: string }) => {
     bulkEdit(bulkEditIds, changes);
     setBulkEditIds([]);
     setSelectedIds(new Set());
-  };
+  }, [bulkEdit, bulkEditIds]);
 
-  const handleSmartBulkEstado = (updates: { id: number; estado: string }[]) => {
+  const handleSmartBulkEstado = useCallback((updates: { id: number; estado: string }[]) => {
     bulkEditIndividual(updates);
     setBulkEditIds([]);
     setSelectedIds(new Set());
-  };
+  }, [bulkEditIndividual]);
 
   const selectedOrders = useMemo(() => {
     return activeOrders.filter(o => bulkEditIds.includes(o.id));
